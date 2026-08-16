@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -15,11 +16,27 @@ type getRequest struct {
 }
 
 func parseGetRequest(r *http.Request) (*getRequest, error) {
-	id, err := uuid.Parse(r.URL.Query().Get("task_id"))
+	idStr := chi.URLParam(r, "task_id")
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		return nil, fmt.Errorf("получение UUID %v", err)
 	}
 	return &getRequest{id: id}, nil
+}
+
+type postRequest struct {
+	Data string `json:"data"`
+}
+
+func parsePostRequest(r *http.Request) (*postRequest, error) {
+	var req postRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, fmt.Errorf("получение тела запроса: %v", err)
+	}
+	if req.Data == "" {
+		return nil, fmt.Errorf("тело запроса пустое")
+	}
+	return &req, nil
 }
 
 func errorHandler(w http.ResponseWriter, err error, resp any) {

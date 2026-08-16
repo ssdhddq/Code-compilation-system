@@ -12,4 +12,5 @@ type Task struct {
 	Status    string
 	CreatedAT time.Time
 	UpdatedAT time.Time
+	Data      string
 }
