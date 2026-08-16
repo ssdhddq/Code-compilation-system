@@ -7,9 +7,16 @@ import (
 
 	httpLib "net/http"
 
+	_ "Code-compilation-system/docs"
+
 	"github.com/go-chi/chi/v5"
 )
 
+// @title           Swagger Example API
+// @version         1.0
+// @description     This is a sample server for a task service.
+// @host            localhost:8080
+// @BasePath        /
 func main() {
 	repo := ram_storage.NewObject()
 	handler := http.NewObject(repo)
