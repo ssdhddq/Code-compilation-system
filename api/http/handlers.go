@@ -2,6 +2,8 @@ package http
 
 import (
 	"Code-compilation-system/repository"
+	"Code-compilation-system/worker"
+	"Code-compilation-system/worker/simulate"
 	"net/http"
 	"time"
 
@@ -11,12 +13,14 @@ import (
 )
 
 type Object struct {
-	repo repository.Object
+	repo   repository.Object
+	worker worker.Object
 }
 
 func NewObject(object repository.Object) *Object {
 	return &Object{
-		repo: object,
+		repo:   object,
+		worker: simulate.NewObject(),
 	}
 }
 
@@ -51,8 +55,8 @@ func (o *Object) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	task := &repository.Task{
 		ID:        id,
-		Result:    "testR",
-		Status:    "testS",
+		Result:    "",
+		Status:    "",
 		CreatedAT: time.Time{},
 		UpdatedAT: time.Time{},
 		Data:      req.Data,
@@ -63,6 +67,8 @@ func (o *Object) PostHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 	}
 
+	o.workHandler(id, w, task)
+
 	createPostResponse(w, id)
 }
 
@@ -71,4 +77,17 @@ func (o *Object) WrapHandlers(r chi.Router) {
 	r.Get("/status/{task_id}", o.GetStatusHandler)
 	r.Get("/result/{task_id}", o.GetResultHandler)
 	r.Post("/task", o.PostHandler)
+}
+
+func (o *Object) workHandler(id uuid.UUID, w http.ResponseWriter, task *repository.Task) {
+	err := o.repo.UpdateStatus(id, "in process")
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+	}
+	o.worker.GoWork(task)
+	err = o.repo.UpdateResult(id, "data_data_data_moc")
+	err = o.repo.UpdateStatus(id, "done")
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+	}
 }
