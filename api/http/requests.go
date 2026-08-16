@@ -6,26 +6,28 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/google/uuid"
 )
 
 type getRequest struct {
-	key string
+	id uuid.UUID
 }
 
 func parseGetRequest(r *http.Request) (*getRequest, error) {
-	key := r.URL.Query().Get("task_id")
-	if key == "" {
-		return nil, fmt.Errorf("missing key")
+	id, err := uuid.Parse(r.URL.Query().Get("task_id"))
+	if err != nil {
+		return nil, fmt.Errorf("получение UUID %v", err)
 	}
-	return &getRequest{key: key}, nil
+	return &getRequest{id: id}, nil
 }
 
 func errorHandler(w http.ResponseWriter, err error, resp any) {
 	if errors.Is(err, repository.NotFound) {
-		http.Error(w, "Key not found", http.StatusNotFound)
+		http.Error(w, "Id not found", http.StatusNotFound)
 		return
 	} else if errors.Is(err, repository.KeyExists) {
-		http.Error(w, "Key already exists", http.StatusConflict)
+		http.Error(w, "Id already exists", http.StatusConflict)
 		return
 	} else if err != nil {
 		http.Error(w, "Internal error", http.StatusInternalServerError)

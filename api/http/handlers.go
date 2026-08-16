@@ -15,12 +15,22 @@ func NewObject(object repository.Object) *Object {
 	}
 }
 
-func (o *Object) GetHandler(w http.ResponseWriter, r *http.Request) {
+func (o *Object) GetStatusHandler(w http.ResponseWriter, r *http.Request) {
 	req, err := parseGetRequest(r)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
-	value, err := o.repo.Get(req.key)
-	errorHandler(w, err, getRequest{*value})
+	task, err := o.repo.Get(req.id)
+	errorHandler(w, err, task.Status)
+}
+
+func (o *Object) GetResultHandler(w http.ResponseWriter, r *http.Request) {
+	req, err := parseGetRequest(r)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	task, err := o.repo.Get(req.id)
+	errorHandler(w, err, task.Result)
 }
