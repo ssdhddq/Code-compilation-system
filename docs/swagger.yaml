@@ -1,0 +1,130 @@
+basePath: /
+definitions:
+  api_http.PostRequest:
+    properties:
+      data:
+        type: string
+    type: object
+  api_http.PostResponse:
+    properties:
+      task_id:
+        type: string
+    type: object
+  api_http.TaskResultResponse:
+    properties:
+      result:
+        type: string
+    type: object
+  api_http.TaskStatusResponse:
+    properties:
+      status:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: This is a sample server for a task service.
+  title: Swagger Example API
+  version: "1.0"
+paths:
+  /result/{task_id}:
+    get:
+      description: Возвращает результат задачи по её UUID
+      parameters:
+      - description: UUID задачи
+        format: uuid
+        in: path
+        name: task_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api_http.TaskResultResponse'
+        "400":
+          description: неверный формат UUID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: задача не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить результат
+      tags:
+      - tasks
+  /status/{task_id}:
+    get:
+      description: Возвращает текущий статус задачи по её UUID
+      parameters:
+      - description: UUID задачи
+        format: uuid
+        in: path
+        name: task_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api_http.TaskStatusResponse'
+        "400":
+          description: неверный формат UUID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: задача не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Получить статус
+      tags:
+      - tasks
+  /task:
+    post:
+      consumes:
+      - application/json
+      description: Принимает JSON с данными для обработки и возвращает ID таски
+      parameters:
+      - description: Данные для таски
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/api_http.PostRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api_http.PostResponse'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Создать таску
+      tags:
+      - tasks
+swagger: "2.0"

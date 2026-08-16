@@ -24,12 +24,12 @@ func parseGetRequest(r *http.Request) (*getRequest, error) {
 	return &getRequest{id: id}, nil
 }
 
-type postRequest struct {
+type PostRequest struct {
 	Data string `json:"data"`
 }
 
-func parsePostRequest(r *http.Request) (*postRequest, error) {
-	var req postRequest
+func parsePostRequest(r *http.Request) (*PostRequest, error) {
+	var req PostRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("получение тела запроса: %v", err)
 	}
@@ -54,6 +54,8 @@ func errorHandler(w http.ResponseWriter, err error, resp any) {
 	if resp != nil {
 		if err := json.NewEncoder(w).Encode(resp); err != nil {
 			http.Error(w, "InternalError", http.StatusInternalServerError)
+		} else {
+			w.WriteHeader(http.StatusOK)
 		}
 	}
 }

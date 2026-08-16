@@ -7,12 +7,12 @@ import (
 	"github.com/google/uuid"
 )
 
-type postResponse struct {
+type PostResponse struct {
 	Id uuid.UUID `json:"task_id"`
 }
 
 func createPostResponse(w http.ResponseWriter, id uuid.UUID) {
-	resp := &postResponse{Id: id}
+	resp := &PostResponse{Id: id}
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

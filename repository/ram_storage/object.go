@@ -79,7 +79,7 @@ func (o *Object) UpdateResult(id uuid.UUID, result string) error {
 	if _, exists := o.data[id]; !exists {
 		return repository.NotFound
 	}
-	o.data[id].Status = result
+	o.data[id].Result = result
 	o.data[id].UpdatedAT = time.Now()
 	return nil
 }
