@@ -3,6 +3,8 @@ package main
 import (
 	"Code-compilation-system/api/http"
 	"Code-compilation-system/repository/ram_storage"
+	"flag"
+	"fmt"
 	"log"
 
 	httpLib "net/http"
@@ -21,9 +23,12 @@ func main() {
 	repo := ram_storage.NewObject()
 	handler := http.NewObject(repo)
 
+	host := flag.String("host", "0.0.0.0", "host addr")
+	port := flag.Int("port", 8080, "port addr")
+
 	r := chi.NewRouter()
 	handler.WrapHandlers(r)
-	err := httpLib.ListenAndServe("localhost:8080", r)
+	err := httpLib.ListenAndServe(fmt.Sprintf("%s:%d", *host, *port), r)
 	if err != nil {
 		log.Fatal(err)
 	}
