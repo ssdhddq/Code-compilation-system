@@ -25,7 +25,7 @@ func parseGetRequest(r *http.Request) (*getRequest, error) {
 }
 
 type PostRequest struct {
-	Data string `json:"data"`
+	Data string `json:"data,omitempty"`
 }
 
 func parsePostRequest(r *http.Request) (*PostRequest, error) {
@@ -39,7 +39,7 @@ func parsePostRequest(r *http.Request) (*PostRequest, error) {
 	return &req, nil
 }
 
-func errorHandler(w http.ResponseWriter, err error, resp any) {
+func errorHandler(w http.ResponseWriter, err error) {
 	if errors.Is(err, repository.NotFound) {
 		http.Error(w, "Id not found", http.StatusNotFound)
 		return
@@ -49,13 +49,5 @@ func errorHandler(w http.ResponseWriter, err error, resp any) {
 	} else if err != nil {
 		http.Error(w, "Internal error", http.StatusInternalServerError)
 		return
-	}
-
-	if resp != nil {
-		if err := json.NewEncoder(w).Encode(resp); err != nil {
-			http.Error(w, "InternalError", http.StatusInternalServerError)
-		} else {
-			w.WriteHeader(http.StatusOK)
-		}
 	}
 }

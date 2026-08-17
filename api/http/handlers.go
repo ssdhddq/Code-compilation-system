@@ -4,6 +4,7 @@ import (
 	"Code-compilation-system/repository"
 	"Code-compilation-system/worker"
 	"Code-compilation-system/worker/simulate"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -48,11 +49,19 @@ type TaskResultResponse struct {
 func (o *Object) GetStatusHandler(w http.ResponseWriter, r *http.Request) {
 	req, err := parseGetRequest(r)
 	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		errorHandler(w, err)
 		return
 	}
 	task, err := o.repo.Get(req.id)
-	errorHandler(w, err, task.Status)
+	if err != nil {
+		errorHandler(w, err)
+		return
+	}
+
+	resp := TaskStatusResponse{Status: task.Status}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }
 
 // GetResultHandler Получить результат таски
@@ -68,11 +77,23 @@ func (o *Object) GetStatusHandler(w http.ResponseWriter, r *http.Request) {
 func (o *Object) GetResultHandler(w http.ResponseWriter, r *http.Request) {
 	req, err := parseGetRequest(r)
 	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		errorHandler(w, err)
 		return
 	}
 	task, err := o.repo.Get(req.id)
-	errorHandler(w, err, task.Result)
+	if err != nil {
+		errorHandler(w, err)
+		return
+	}
+
+	if task.Status != "ready" {
+		http.Error(w, "task not ready", http.StatusConflict)
+		return
+	}
+	resp := TaskResultResponse{Result: task.Result}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(resp)
 }
 
 // PostHandler создает новую таску
@@ -96,8 +117,8 @@ func (o *Object) PostHandler(w http.ResponseWriter, r *http.Request) {
 
 	task := &repository.Task{
 		ID:        id,
-		Result:    "",
-		Status:    "",
+		Result:    "-",
+		Status:    "-",
 		CreatedAT: time.Time{},
 		UpdatedAT: time.Time{},
 		Data:      req.Data,
@@ -127,11 +148,17 @@ func (o *Object) workHandler(id uuid.UUID, w http.ResponseWriter, task *reposito
 	err := o.repo.UpdateStatus(id, "in process")
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 	o.worker.GoWork(task)
 	err = o.repo.UpdateResult(id, "datamoc")
-	err = o.repo.UpdateStatus(id, "done")
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	err = o.repo.UpdateStatus(id, "ready")
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 }
