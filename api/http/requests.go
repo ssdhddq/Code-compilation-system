@@ -24,17 +24,36 @@ func parseGetRequest(r *http.Request) (*getRequest, error) {
 	return &getRequest{id: id}, nil
 }
 
-type PostRequest struct {
+type PostRequestTask struct {
 	Data string `json:"data,omitempty"`
 }
 
-func parsePostRequest(r *http.Request) (*PostRequest, error) {
-	var req PostRequest
+func parsePostRequestTask(r *http.Request) (*PostRequestTask, error) {
+	var req PostRequestTask
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("получение тела запроса: %v", err)
 	}
 	if req.Data == "" {
 		return nil, fmt.Errorf("тело запроса пустое")
+	}
+	return &req, nil
+}
+
+type PostRequestRegister struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func parsePostRequestReqister(r *http.Request) (*PostRequestRegister, error) {
+	var req PostRequestRegister
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, fmt.Errorf("получение тела запроса: %v", err)
+	}
+	if req.Username == "" {
+		return nil, fmt.Errorf("username не может быть пустым")
+	}
+	if req.Username == "" {
+		return nil, fmt.Errorf("password не может быть пустым")
 	}
 	return &req, nil
 }

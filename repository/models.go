@@ -14,3 +14,15 @@ type Task struct {
 	UpdatedAT time.Time
 	Data      string
 }
+
+type User struct {
+	Id       uuid.UUID
+	Login    string
+	Password string
+}
+
+type Session struct {
+	UserID    uuid.UUID
+	SessionID uuid.UUID
+	TTL       time.Duration
+}

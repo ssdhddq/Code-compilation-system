@@ -20,7 +20,10 @@ import (
 // @host            localhost:8080
 // @BasePath        /
 func main() {
-	repo := ram_storage.NewObject()
+	s := ram_storage.NewObjectSession()
+	u := ram_storage.NewObjectUser()
+	t := ram_storage.NewObjectTask()
+	repo := ram_storage.NewObject(u, t, s)
 	handler := http.NewObject(repo)
 
 	host := flag.String("host", "0.0.0.0", "host addr")

@@ -5,6 +5,7 @@ import (
 	"Code-compilation-system/worker"
 	"Code-compilation-system/worker/simulate"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -17,11 +18,11 @@ import (
 )
 
 type Object struct {
-	repo   repository.Object
+	repo   repository.Repository
 	worker worker.Object
 }
 
-func NewObject(object repository.Object) *Object {
+func NewObject(object repository.Repository) *Object {
 	return &Object{
 		repo:   object,
 		worker: simulate.NewObject(),
@@ -49,10 +50,10 @@ type TaskResultResponse struct {
 func (o *Object) GetStatusHandler(w http.ResponseWriter, r *http.Request) {
 	req, err := parseGetRequest(r)
 	if err != nil {
-		errorHandler(w, err)
+		http.Error(w, "Bad request parse", http.StatusBadRequest)
 		return
 	}
-	task, err := o.repo.Get(req.id)
+	task, err := o.repo.GetTask(req.id)
 	if err != nil {
 		errorHandler(w, err)
 		return
@@ -77,10 +78,10 @@ func (o *Object) GetStatusHandler(w http.ResponseWriter, r *http.Request) {
 func (o *Object) GetResultHandler(w http.ResponseWriter, r *http.Request) {
 	req, err := parseGetRequest(r)
 	if err != nil {
-		errorHandler(w, err)
+		http.Error(w, "Bad request parse", http.StatusBadRequest)
 		return
 	}
-	task, err := o.repo.Get(req.id)
+	task, err := o.repo.GetTask(req.id)
 	if err != nil {
 		errorHandler(w, err)
 		return
@@ -96,18 +97,18 @@ func (o *Object) GetResultHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-// PostHandler создает новую таску
+// PostHandlerTask создает новую таску
 // @Summary      Создать таску
 // @Description  Принимает JSON с данными для обработки и возвращает ID таски
 // @Tags         tasks
 // @Accept       json
 // @Produce      json
-// @Param        request body PostRequest true "Данные для таски"
-// @Success      201 {object} PostResponse
+// @Param        request body PostRequestTask true "Данные для таски"
+// @Success      201 {object} PostResponseTask
 // @Failure      400 {object} map[string]string
 // @Router       /task [post]
-func (o *Object) PostHandler(w http.ResponseWriter, r *http.Request) {
-	req, err := parsePostRequest(r)
+func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
+	req, err := parsePostRequestTask(r)
 	if err != nil {
 		http.Error(w, "Bad request parse", http.StatusBadRequest)
 		return
@@ -124,14 +125,24 @@ func (o *Object) PostHandler(w http.ResponseWriter, r *http.Request) {
 		Data:      req.Data,
 	}
 
-	err = o.repo.Create(task)
+	err = o.repo.CreateTask(task)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
 	}
 
 	o.workHandler(id, w, task)
 
-	createPostResponse(w, id)
+	createPostResponseTask(w, id)
+}
+
+func (o *Object) PostHandlerRegister(w http.ResponseWriter, r *http.Request) {
+	req, err := parsePostRequestReqister(r)
+	if err != nil {
+		http.Error(w, "Bad request parse", http.StatusBadRequest)
+		return
+	}
+	//Регистрация пользователя, добавление в бд, генерация и отправка респонса
+	fmt.Printf(req.Username)
 }
 
 func (o *Object) WrapHandlers(r chi.Router) {
@@ -141,7 +152,7 @@ func (o *Object) WrapHandlers(r chi.Router) {
 	))
 	r.Get("/status/{task_id}", o.GetStatusHandler)
 	r.Get("/result/{task_id}", o.GetResultHandler)
-	r.Post("/task", o.PostHandler)
+	r.Post("/task", o.PostHandlerTask)
 }
 
 func (o *Object) workHandler(id uuid.UUID, w http.ResponseWriter, task *repository.Task) {

@@ -1,0 +1,32 @@
+package repository
+
+import (
+	"github.com/google/uuid"
+)
+
+type Repository interface {
+	ObjectUser
+	ObjectTask
+	ObjectSession
+}
+
+type ObjectTask interface {
+	GetTask(uuid.UUID) (*Task, error)
+	SaveTask(uuid.UUID, *Task) error
+	CreateTask(*Task) error
+	DeleteTask(uuid.UUID) error
+	UpdateStatus(uuid.UUID, string) error
+	UpdateResult(uuid.UUID, string) error
+}
+
+type ObjectUser interface {
+	RegisterUser(*User) error
+	AuthUser(string, string) bool
+	DeleteUser(uuid.UUID) error
+}
+
+type ObjectSession interface {
+	CreateSession(*Session) error
+	ValidateToken(uuid.UUID) bool
+	DeleteToken(uuid.UUID) error
+}
