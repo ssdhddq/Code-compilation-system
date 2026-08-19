@@ -5,7 +5,6 @@ import (
 	"Code-compilation-system/worker"
 	"Code-compilation-system/worker/simulate"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	swagger "github.com/swaggo/http-swagger/v2"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Object struct {
@@ -136,13 +136,51 @@ func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *Object) PostHandlerRegister(w http.ResponseWriter, r *http.Request) {
-	req, err := parsePostRequestReqister(r)
+	req, err := parsePostRequestReqisterAndAuth(r)
 	if err != nil {
 		http.Error(w, "Bad request parse", http.StatusBadRequest)
 		return
 	}
-	//Регистрация пользователя, добавление в бд, генерация и отправка респонса
-	fmt.Printf(req.Username)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	newUser := repository.User{
+		Id:       uuid.New(),
+		Login:    req.Username,
+		Password: string(hashedPassword),
+	}
+	err = o.repo.RegisterUser(&newUser)
+	if err != nil {
+		errorHandler(w, err)
+	}
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
+	req, err := parsePostRequestReqisterAndAuth(r)
+	if err != nil {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	auth, id := o.repo.AuthUser(req.Username, req.Password)
+	if !auth {
+		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
+	}
+	sessionId := uuid.New()
+	newSession := repository.Session{
+		UserID:    *id,
+		SessionID: sessionId,
+		TTL:       time.Now().Add(24 * time.Hour),
+	}
+	err = o.repo.CreateSession(&newSession)
+	if err != nil {
+		errorHandler(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (o *Object) WrapHandlers(r chi.Router) {
@@ -153,6 +191,8 @@ func (o *Object) WrapHandlers(r chi.Router) {
 	r.Get("/status/{task_id}", o.GetStatusHandler)
 	r.Get("/result/{task_id}", o.GetResultHandler)
 	r.Post("/task", o.PostHandlerTask)
+	r.Post("/register", o.PostHandlerRegister)
+	r.Post("/login", o.postHandlerAuth)
 }
 
 func (o *Object) workHandler(id uuid.UUID, w http.ResponseWriter, task *repository.Task) {

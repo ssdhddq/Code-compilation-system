@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type ObjectUser struct {
@@ -31,15 +32,15 @@ func (o *ObjectUser) RegisterUser(user *repository.User) error {
 	return nil
 }
 
-func (o *ObjectUser) AuthUser(login, password string) bool {
+func (o *ObjectUser) AuthUser(login, password string) (bool, *uuid.UUID) {
 	o.m.RLock()
 	defer o.m.RUnlock()
 	if id, exist := o.logins[login]; !exist {
-		return false
-	} else if password == o.data[id].Password {
-		return true
+		return false, nil
+	} else if err := bcrypt.CompareHashAndPassword([]byte(o.data[id].Password), []byte(password)); err == nil {
+		return true, &id
 	}
-	return false
+	return false, nil
 }
 
 func (o *ObjectUser) DeleteUser(u uuid.UUID) error {

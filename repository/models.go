@@ -24,5 +24,5 @@ type User struct {
 type Session struct {
 	UserID    uuid.UUID
 	SessionID uuid.UUID
-	TTL       time.Duration
+	TTL       time.Time
 }

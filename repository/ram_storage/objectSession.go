@@ -3,6 +3,7 @@ package ram_storage
 import (
 	"Code-compilation-system/repository"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -34,7 +35,7 @@ func (o *ObjectSession) ValidateToken(u uuid.UUID) bool {
 	if _, exist := o.data[u]; !exist {
 		return false
 	}
-	return true
+	return time.Now().Before(o.data[u].TTL)
 }
 
 func (o *ObjectSession) DeleteToken(u uuid.UUID) error {

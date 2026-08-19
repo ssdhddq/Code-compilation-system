@@ -21,7 +21,7 @@ type ObjectTask interface {
 
 type ObjectUser interface {
 	RegisterUser(*User) error
-	AuthUser(string, string) bool
+	AuthUser(string, string) (bool, *uuid.UUID)
 	DeleteUser(uuid.UUID) error
 }
 
