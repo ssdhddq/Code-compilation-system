@@ -14,7 +14,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	swagger "github.com/swaggo/http-swagger/v2"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type Object struct {
@@ -128,6 +127,7 @@ func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
 	err = o.repo.CreateTask(task)
 	if err != nil {
 		http.Error(w, "Bad request", http.StatusBadRequest)
+		return
 	}
 
 	o.workHandler(id, w, task)
@@ -141,19 +141,16 @@ func (o *Object) PostHandlerRegister(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request parse", http.StatusBadRequest)
 		return
 	}
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
+
 	newUser := repository.User{
 		Id:       uuid.New(),
 		Login:    req.Username,
-		Password: string(hashedPassword),
+		Password: req.Password,
 	}
 	err = o.repo.RegisterUser(&newUser)
 	if err != nil {
 		errorHandler(w, err)
+		return
 	}
 	w.WriteHeader(http.StatusCreated)
 }
@@ -166,7 +163,7 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 	}
 	auth, id := o.repo.AuthUser(req.Username, req.Password)
 	if !auth {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		http.Error(w, "Bad request", http.StatusUnauthorized)
 		return
 	}
 	sessionId := uuid.New()
@@ -180,6 +177,8 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 		errorHandler(w, err)
 		return
 	}
+	w.Header().Set("Content-Type", "application/jsom")
+	json.NewEncoder(w).Encode(map[string]string{"token": sessionId.String()})
 	w.WriteHeader(http.StatusOK)
 }
 

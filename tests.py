@@ -5,23 +5,24 @@ import time
 
 BASE_URL = "http://127.0.0.1:8080"
 
-# @pytest.fixture(scope='module')
-# def user_data():
-#     username = f'user_{uuid.uuid4()}'
-#     password = 'password228'
-#     return {'username': username, 'password': password}
+@pytest.fixture(scope='module')
+def user_data():
+    username = f'user_{uuid.uuid4()}'
+    password = 'password228'
+    return {'username': username, 'password': password}
 
-# def test_register_user(user_data):
-#     register_url = f"{BASE_URL}/register"
-#     response = requests.post(register_url, json=user_data)
-#     assert response.status_code == 201
+def test_register_user(user_data):
+    register_url = f"{BASE_URL}/register"
+    response = requests.post(register_url, json=user_data)
+    assert response.status_code == 201
 
-# def test_login_user(user_data):
-#     login_url = f"{BASE_URL}/login"
-#     response = requests.post(login_url, json=user_data)
-#     assert response.status_code == 200
-#     data = response.json()
-#     assert 'token' in data
+def test_login_user(user_data):
+    login_url = f"{BASE_URL}/login"
+    response = requests.post(login_url, json=user_data)
+    assert response.status_code == 200
+    data = response.json()
+    assert 'token' in data
+
 def test_create_task():
     task_url = f"{BASE_URL}/task"
     response = requests.post(task_url, json={"data": "test_data"})
