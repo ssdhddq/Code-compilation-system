@@ -3,6 +3,7 @@ package main
 import (
 	"Code-compilation-system/api/http"
 	"Code-compilation-system/repository/ram_storage"
+	"Code-compilation-system/session"
 	"flag"
 	"fmt"
 	"log"
@@ -13,6 +14,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
+
+var globalSession *session.Manager
 
 // @title           Swagger Example API
 // @version         1.0
@@ -28,6 +31,7 @@ func main() {
 
 	host := flag.String("host", "0.0.0.0", "host addr")
 	port := flag.Int("port", 8080, "port addr")
+
 
 	r := chi.NewRouter()
 	handler.WrapHandlers(r)
