@@ -139,6 +139,16 @@ func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
 	createPostResponseTask(w, id)
 }
 
+// PostHandlerRegister создает новог опользователя
+// @Summary      Зарегестрировать пользователя
+// @Description  Принимает JSON с данными username и password
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Param        request body PostRequestRegisterAndAuth true "Данные пользователя"
+// @Success      201
+// @Failure      400 {object} map[string]string
+// @Router       /register [post]
 func (o *Object) PostHandlerRegister(w http.ResponseWriter, r *http.Request) {
 	req, err := parsePostRequestReqisterAndAuth(r)
 	if err != nil {
@@ -159,6 +169,17 @@ func (o *Object) PostHandlerRegister(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+// PostHandlerAuth логинит пользователя
+// @Summary      Залогинить пользователя
+// @Description  Принимает JSON с данными username и password, сохраняет в куках айди сессии
+// @Tags         User
+// @Accept       json
+// @Produce      json
+// @Param        request body PostRequestRegisterAndAuth true "Данные пользователя"
+// @Success      200 {object} map[string]string "token"
+// @Failure      400 {object} map[string]string
+// @Failure      401 {object} map[string]string
+// @Router       /login [post]
 func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 	req, err := parsePostRequestReqisterAndAuth(r)
 	if err != nil {

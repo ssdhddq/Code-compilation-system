@@ -1,21 +1,28 @@
 basePath: /
 definitions:
-  api_http.PostRequest:
+  http.PostRequestRegisterAndAuth:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  http.PostRequestTask:
     properties:
       data:
         type: string
     type: object
-  api_http.PostResponse:
+  http.PostResponseTask:
     properties:
       task_id:
         type: string
     type: object
-  api_http.TaskResultResponse:
+  http.TaskResultResponse:
     properties:
       result:
         type: string
     type: object
-  api_http.TaskStatusResponse:
+  http.TaskStatusResponse:
     properties:
       status:
         type: string
@@ -27,6 +34,69 @@ info:
   title: Swagger Example API
   version: "1.0"
 paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Принимает JSON с данными username и password, сохраняет в куках
+        айди сессии
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/http.PostRequestRegisterAndAuth'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Залогинить пользователя
+      tags:
+      - User
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Принимает JSON с данными username и password
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/http.PostRequestRegisterAndAuth'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Зарегестрировать пользователя
+      tags:
+      - User
   /result/{task_id}:
     get:
       description: Возвращает результат задачи по её UUID
@@ -41,7 +111,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api_http.TaskResultResponse'
+            $ref: '#/definitions/http.TaskResultResponse'
         "400":
           description: неверный формат UUID
           schema:
@@ -77,7 +147,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/api_http.TaskStatusResponse'
+            $ref: '#/definitions/http.TaskStatusResponse'
         "400":
           description: неверный формат UUID
           schema:
@@ -110,14 +180,14 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/api_http.PostRequest'
+          $ref: '#/definitions/http.PostRequestTask'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/api_http.PostResponse'
+            $ref: '#/definitions/http.PostResponseTask'
         "400":
           description: Bad Request
           schema:

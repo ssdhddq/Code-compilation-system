@@ -15,6 +15,101 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/login": {
+            "post": {
+                "description": "Принимает JSON с данными username и password, сохраняет в куках айди сессии",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Залогинить пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные пользователя",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.PostRequestRegisterAndAuth"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "token",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/register": {
+            "post": {
+                "description": "Принимает JSON с данными username и password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "User"
+                ],
+                "summary": "Зарегестрировать пользователя",
+                "parameters": [
+                    {
+                        "description": "Данные пользователя",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.PostRequestRegisterAndAuth"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/result/{task_id}": {
             "get": {
                 "description": "Возвращает результат задачи по её UUID",
@@ -36,7 +131,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api_http.TaskResultResponse"
+                            "$ref": "#/definitions/http.TaskResultResponse"
                         }
                     },
                     "400": {
@@ -90,7 +185,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/api_http.TaskStatusResponse"
+                            "$ref": "#/definitions/http.TaskStatusResponse"
                         }
                     },
                     "400": {
@@ -143,7 +238,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/api_http.PostRequest"
+                            "$ref": "#/definitions/http.PostRequestTask"
                         }
                     }
                 ],
@@ -151,7 +246,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/api_http.PostResponse"
+                            "$ref": "#/definitions/http.PostResponseTask"
                         }
                     },
                     "400": {
@@ -168,7 +263,18 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "api_http.PostRequest": {
+        "http.PostRequestRegisterAndAuth": {
+            "type": "object",
+            "properties": {
+                "password": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.PostRequestTask": {
             "type": "object",
             "properties": {
                 "data": {
@@ -176,7 +282,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_http.PostResponse": {
+        "http.PostResponseTask": {
             "type": "object",
             "properties": {
                 "task_id": {
@@ -184,7 +290,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_http.TaskResultResponse": {
+        "http.TaskResultResponse": {
             "type": "object",
             "properties": {
                 "result": {
@@ -192,7 +298,7 @@ const docTemplate = `{
                 }
             }
         },
-        "api_http.TaskStatusResponse": {
+        "http.TaskStatusResponse": {
             "type": "object",
             "properties": {
                 "status": {
