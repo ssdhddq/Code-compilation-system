@@ -64,13 +64,21 @@ func main() {
 
 	manager.StopGC()
 
+	log.Println("wait active tasks to finish...")
+	if handler.ShutdownTasks(30 * time.Second) {
+		log.Println("all tasks finished")
+	} else {
+		log.Println("timeout waiting for tasks")
+	}
+
 	shdCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shdCtx); err != nil {
 		log.Printf("server shutdown err: %v", err)
 	} else {
-		log.Println("server shutdown successful")
+		log.Println("server shutdown success")
 	}
 
 	log.Println("App exit")
+	os.Exit(0)
 }

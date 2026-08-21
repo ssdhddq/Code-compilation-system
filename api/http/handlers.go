@@ -7,7 +7,9 @@ import (
 	"Code-compilation-system/worker/simulate"
 	"context"
 	"encoding/json"
+	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	_ "Code-compilation-system/docs"
@@ -22,13 +24,19 @@ type Object struct {
 	repo    repository.Repository
 	worker  worker.Object
 	manager *session.Manager
+	wg      sync.WaitGroup
+	ctx     context.Context // контекст для отмены задач
+	cancel  context.CancelFunc
 }
 
 func NewObject(object repository.Repository, sm *session.Manager) *Object {
+	ctx, cancel := context.WithCancel(context.Background())
 	return &Object{
 		repo:    object,
 		worker:  simulate.NewObject(),
 		manager: sm,
+		ctx:     ctx,
+		cancel:  cancel,
 	}
 }
 
@@ -134,7 +142,7 @@ func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	o.workHandler(id, w, task)
+	o.workHandler(id, task)
 
 	createPostResponseTask(w, id)
 }
@@ -249,21 +257,45 @@ func (o *Object) WrapHandlers(r chi.Router) {
 	})
 }
 
-func (o *Object) workHandler(id uuid.UUID, w http.ResponseWriter, task *repository.Task) {
-	err := o.repo.UpdateStatus(id, "in process")
-	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
+func (o *Object) ShutdownTasks(timeout time.Duration) bool {
+	o.cancel()
+
+	done := make(chan struct{})
+	go func() {
+		o.wg.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return true
+	case <-time.After(timeout):
+		return false
 	}
-	o.worker.GoWork(task)
-	err = o.repo.UpdateResult(id, "datamoc")
-	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
-	err = o.repo.UpdateStatus(id, "ready")
-	if err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
-		return
-	}
+}
+
+func (o *Object) workHandler(id uuid.UUID, task *repository.Task) {
+	o.wg.Add(1)
+	go func() {
+		if err := o.repo.UpdateStatus(id, "in process"); err != nil {
+			log.Printf("failed set in process to task: %s", id.String())
+			if err = o.repo.UpdateStatus(id, "error"); err != nil {
+				log.Printf("failed set error to task: %s", id.String())
+			}
+			return
+		}
+
+		o.worker.GoWork(o.ctx, task, func(result string, err error) {
+			defer o.wg.Done()
+			if err != nil {
+				log.Printf("Task %s err: %v", id.String(), err)
+				_ = o.repo.UpdateStatus(id, "error")
+				_ = o.repo.UpdateResult(id, err.Error())
+			} else {
+				log.Printf("Task %s result: %s", id.String(), result)
+				_ = o.repo.UpdateResult(id, result)
+				_ = o.repo.UpdateStatus(id, "ready")
+			}
+		})
+	}()
 }

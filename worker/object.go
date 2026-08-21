@@ -1,7 +1,10 @@
 package worker
 
-import "Code-compilation-system/repository"
+import (
+	"Code-compilation-system/repository"
+	"context"
+)
 
 type Object interface {
-	GoWork(task *repository.Task)
+	GoWork(ctx context.Context, task *repository.Task, complete func(result string, err error))
 }
