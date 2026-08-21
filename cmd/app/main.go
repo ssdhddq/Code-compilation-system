@@ -4,9 +4,14 @@ import (
 	"Code-compilation-system/api/http"
 	"Code-compilation-system/repository/ram_storage"
 	"Code-compilation-system/session"
+	"context"
 	"flag"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	httpLib "net/http"
 
@@ -23,27 +28,49 @@ var globalSession *session.Manager
 // @host            localhost:8080
 // @BasePath        /
 func main() {
-	provider := ram_storage.NewProvider()
-	session.Provides["ram"] = provider
-	manager, err := session.NewManager("ram", "sessionid", 86400)
+	session.RegisterProvider("ram_storage", ram_storage.Pvr)
+	manager, err := session.NewManager("ram_storage", "sessionID", 86400)
 	if err != nil {
 		panic("manager not started")
 	}
+
 	go manager.GC()
-	//Теперь надо обьекту handler передовать мэнеджера
-	s := ram_storage.NewObjectSession()
+
 	u := ram_storage.NewObjectUser()
 	t := ram_storage.NewObjectTask()
-	repo := ram_storage.NewObject(u, t, s)
-	handler := http.NewObject(repo)
+	repo := ram_storage.NewObject(u, t)
+
+	handler := http.NewObject(repo, manager)
 
 	host := flag.String("host", "0.0.0.0", "host addr")
 	port := flag.Int("port", 8080, "port addr")
 
 	r := chi.NewRouter()
 	handler.WrapHandlers(r)
-	err = httpLib.ListenAndServe(fmt.Sprintf("%s:%d", *host, *port), r)
-	if err != nil {
-		log.Fatal(err)
+	srv := &httpLib.Server{
+		Addr:    fmt.Sprintf("%s:%d", *host, *port),
+		Handler: r,
 	}
+	go func() {
+		err = srv.ListenAndServe()
+		if err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+	<-sigCh
+
+	manager.StopGC()
+
+	shdCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(shdCtx); err != nil {
+		log.Printf("server shutdown err: %v", err)
+	} else {
+		log.Println("server shutdown successful")
+	}
+
+	log.Println("App exit")
 }

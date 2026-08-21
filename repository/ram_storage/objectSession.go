@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var provider = &Provider{
+var Pvr = &Provider{
 	lock:     sync.Mutex{},
 	sessions: make(map[string]*list.Element),
 	list:     list.New(),
@@ -21,12 +21,12 @@ type SessionStore struct {
 
 func (s *SessionStore) Set(key, value interface{}) error {
 	s.value[key] = value
-	err := provider.SessionUpdate(s.sid)
+	err := Pvr.SessionUpdate(s.sid)
 	return err
 }
 
 func (s *SessionStore) Get(key interface{}) interface{} {
-	err := provider.SessionUpdate(s.sid)
+	err := Pvr.SessionUpdate(s.sid)
 	if err != nil {
 		return nil
 	}

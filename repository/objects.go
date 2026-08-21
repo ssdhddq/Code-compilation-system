@@ -7,7 +7,6 @@ import (
 type Repository interface {
 	ObjectUser
 	ObjectTask
-	ObjectSession
 }
 
 type ObjectTask interface {
@@ -23,10 +22,4 @@ type ObjectUser interface {
 	RegisterUser(*User) error
 	AuthUser(string, string) (bool, *uuid.UUID)
 	DeleteUser(uuid.UUID) error
-}
-
-type ObjectSession interface {
-	CreateSession(*Session) error
-	ValidateToken(uuid.UUID) bool
-	DeleteToken(uuid.UUID) error
 }

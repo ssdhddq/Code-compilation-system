@@ -2,8 +2,10 @@ package http
 
 import (
 	"Code-compilation-system/repository"
+	"Code-compilation-system/session"
 	"Code-compilation-system/worker"
 	"Code-compilation-system/worker/simulate"
+	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -17,14 +19,16 @@ import (
 )
 
 type Object struct {
-	repo   repository.Repository
-	worker worker.Object
+	repo    repository.Repository
+	worker  worker.Object
+	manager *session.Manager
 }
 
-func NewObject(object repository.Repository) *Object {
+func NewObject(object repository.Repository, sm *session.Manager) *Object {
 	return &Object{
-		repo:   object,
-		worker: simulate.NewObject(),
+		repo:    object,
+		worker:  simulate.NewObject(),
+		manager: sm,
 	}
 }
 
@@ -166,20 +170,46 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad request", http.StatusUnauthorized)
 		return
 	}
-	sessionId := uuid.New()
-	newSession := repository.Session{
-		UserID:    *id,
-		SessionID: sessionId,
-		TTL:       time.Now().Add(24 * time.Hour),
+	sess := o.manager.SessionStart(w, r)
+	if sess == nil {
+		http.Error(w, "Failed to start sess", http.StatusInternalServerError)
+		return
 	}
-	err = o.repo.CreateSession(&newSession)
-	if err != nil {
-		errorHandler(w, err)
+	if err := sess.Set("userID", id.String()); err != nil {
+		http.Error(w, "Failed to save sess userID", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/jsom")
-	json.NewEncoder(w).Encode(map[string]string{"token": sessionId.String()})
+	json.NewEncoder(w).Encode(map[string]string{"token": sess.SessionID()})
 	w.WriteHeader(http.StatusOK)
+}
+
+func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sess := o.manager.SessionStart(w, r)
+		if sess == nil {
+			http.Error(w, "Unauth", http.StatusUnauthorized)
+			return
+		}
+		userID := sess.Get("userID")
+		if userID == nil {
+			http.Error(w, "Unauth", http.StatusUnauthorized)
+			return
+		}
+		userIDStr, ok := userID.(string)
+		if !ok {
+			http.Error(w, "Failed convert ID to string", http.StatusInternalServerError)
+			return
+		}
+		userUUID, err := uuid.Parse(userIDStr)
+		if err != nil {
+			http.Error(w, "Invalid ID", http.StatusInternalServerError)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "userID", userUUID)
+		request.ServeHTTP(w, r.WithContext(ctx))
+
+	})
 }
 
 func (o *Object) WrapHandlers(r chi.Router) {
@@ -189,9 +219,13 @@ func (o *Object) WrapHandlers(r chi.Router) {
 	))
 	r.Get("/status/{task_id}", o.GetStatusHandler)
 	r.Get("/result/{task_id}", o.GetResultHandler)
-	r.Post("/task", o.PostHandlerTask)
 	r.Post("/register", o.PostHandlerRegister)
 	r.Post("/login", o.postHandlerAuth)
+
+	r.Group(func(r chi.Router) {
+		r.Use(o.AuthMiddleware)
+		r.Post("/task", o.PostHandlerTask)
+	})
 }
 
 func (o *Object) workHandler(id uuid.UUID, w http.ResponseWriter, task *repository.Task) {

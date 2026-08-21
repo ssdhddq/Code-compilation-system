@@ -75,7 +75,11 @@ func (manager *Manager) SessionDestroy(w http.ResponseWriter, r *http.Request) {
 	}
 	manager.lock.Lock()
 	defer manager.lock.Unlock()
-	if err := manager.provider.SessionDestroy(cookie.Value); err != nil {
+	sid, err := url.QueryUnescape(cookie.Value)
+	if err != nil {
+		return
+	}
+	if err := manager.provider.SessionDestroy(sid); err != nil {
 		return
 	}
 	expiration := time.Now()
@@ -83,9 +87,23 @@ func (manager *Manager) SessionDestroy(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &cookieNew)
 }
 
+var stopGC bool
+var stopGCMu sync.Mutex
+
+func (manager *Manager) StopGC() {
+	stopGCMu.Lock()
+	stopGC = true
+	stopGCMu.Unlock()
+}
+
 func (manager *Manager) GC() {
 	manager.lock.Lock()
 	defer manager.lock.Unlock()
 	manager.provider.SessionGC(manager.maxLifeTime)
-	time.AfterFunc(time.Duration(manager.maxLifeTime), func() { manager.GC() })
+	stopGCMu.Lock()
+	defer stopGCMu.Unlock()
+	stopGCTemp := stopGC
+	if !stopGCTemp {
+		time.AfterFunc(time.Duration(manager.maxLifeTime)*time.Second, func() { manager.GC() })
+	}
 }
