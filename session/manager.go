@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var provides = make(map[string]Provider)
+var Provides = make(map[string]Provider)
 
 type Manager struct {
 	cookieName  string
@@ -20,7 +20,7 @@ type Manager struct {
 }
 
 func NewManager(provideName, cookieName string, maxLifeTime int64) (*Manager, error) {
-	provider, ok := provides[provideName]
+	provider, ok := Provides[provideName]
 	if !ok {
 		return nil, fmt.Errorf("unknown provide: %s", provideName)
 	}
@@ -35,10 +35,10 @@ func RegisterProvider(name string, provider Provider) {
 	if provider == nil {
 		panic("register provider is nil")
 	}
-	if _, dup := provides[name]; dup {
+	if _, dup := Provides[name]; dup {
 		panic("register called twice for provider " + name)
 	}
-	provides[name] = provider
+	Provides[name] = provider
 }
 
 func (manager *Manager) sessionId() string {

@@ -23,6 +23,14 @@ var globalSession *session.Manager
 // @host            localhost:8080
 // @BasePath        /
 func main() {
+	provider := ram_storage.NewProvider()
+	session.Provides["ram"] = provider
+	manager, err := session.NewManager("ram", "sessionid", 86400)
+	if err != nil {
+		panic("manager not started")
+	}
+	go manager.GC()
+	//Теперь надо обьекту handler передовать мэнеджера
 	s := ram_storage.NewObjectSession()
 	u := ram_storage.NewObjectUser()
 	t := ram_storage.NewObjectTask()
@@ -32,10 +40,9 @@ func main() {
 	host := flag.String("host", "0.0.0.0", "host addr")
 	port := flag.Int("port", 8080, "port addr")
 
-
 	r := chi.NewRouter()
 	handler.WrapHandlers(r)
-	err := httpLib.ListenAndServe(fmt.Sprintf("%s:%d", *host, *port), r)
+	err = httpLib.ListenAndServe(fmt.Sprintf("%s:%d", *host, *port), r)
 	if err != nil {
 		log.Fatal(err)
 	}

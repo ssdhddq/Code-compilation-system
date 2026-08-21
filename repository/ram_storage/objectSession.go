@@ -2,48 +2,48 @@ package ram_storage
 
 import (
 	"Code-compilation-system/repository"
+	"container/list"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
-type ObjectSession struct {
-	m    sync.RWMutex
-	data map[uuid.UUID]*repository.Session
+var provider = &Provider{
+	lock:     sync.Mutex{},
+	sessions: make(map[string]*list.Element),
+	list:     list.New(),
 }
 
-func NewObjectSession() *ObjectSession {
-	return &ObjectSession{
-		data: make(map[uuid.UUID]*repository.Session),
-	}
+type SessionStore struct {
+	sid          string
+	timeAccessed time.Time
+	value        map[interface{}]interface{}
 }
 
-func (o *ObjectSession) CreateSession(session *repository.Session) error {
-	o.m.Lock()
-	defer o.m.Unlock()
-	if session == nil {
-		return repository.NilSession
+func (s *SessionStore) Set(key, value interface{}) error {
+	s.value[key] = value
+	err := provider.SessionUpdate(s.sid)
+	return err
+}
+
+func (s *SessionStore) Get(key interface{}) interface{} {
+	err := provider.SessionUpdate(s.sid)
+	if err != nil {
+		return nil
 	}
-	o.data[session.SessionID] = session
+	if v, ok := s.value[key]; ok {
+		return v
+	}
 	return nil
 }
 
-func (o *ObjectSession) ValidateToken(u uuid.UUID) bool {
-	o.m.RLock()
-	defer o.m.RUnlock()
-	if _, exist := o.data[u]; !exist {
-		return false
-	}
-	return time.Now().Before(o.data[u].TTL)
-}
-
-func (o *ObjectSession) DeleteToken(u uuid.UUID) error {
-	o.m.Lock()
-	defer o.m.Unlock()
-	if _, exist := o.data[u]; !exist {
+func (s *SessionStore) Delete(key interface{}) error {
+	if _, exist := s.value[key]; !exist {
 		return repository.NotFound
 	}
-	delete(o.data, u)
+	delete(s.value, key)
 	return nil
+}
+
+func (s *SessionStore) SessionID() string {
+	return s.sid
 }
