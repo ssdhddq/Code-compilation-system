@@ -2,6 +2,7 @@ package main
 
 import (
 	"Code-compilation-system/api/http"
+	"Code-compilation-system/repository/rabbit_mq"
 	"Code-compilation-system/repository/ram_storage"
 	"Code-compilation-system/session"
 	"context"
@@ -40,7 +41,12 @@ func main() {
 	t := ram_storage.NewObjectTask()
 	repo := ram_storage.NewObject(u, t)
 
-	handler := http.NewObject(repo, manager)
+	senderRMQ, err := rabbit_mq.NewRabbitMQSender("", "") // TODO остановился тут
+	if err != nil {
+		log.Fatal("failed creating rabbitMQ: %w", err)
+	}
+
+	handler := http.NewObject(repo, manager, senderRMQ)
 
 	host := flag.String("host", "0.0.0.0", "host addr")
 	port := flag.Int("port", 8080, "port addr")

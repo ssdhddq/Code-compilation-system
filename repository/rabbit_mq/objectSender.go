@@ -1,7 +1,6 @@
 package rabbit_mq
 
 import (
-	"Code-compilation-system/repository"
 	"encoding/json"
 	"fmt"
 
@@ -12,6 +11,12 @@ type RabbitMQSender struct {
 	connection *amqp.Connection
 	channel    *amqp.Channel
 	queueName  string
+}
+
+type TaskMessageRMQ struct {
+	TaskID     string `json:"task_id"`
+	Translator string `json:"translator"`
+	Code       string `json:"code"`
 }
 
 func NewRabbitMQSender(amqpURL, queueName string) (*RabbitMQSender, error) {
@@ -37,7 +42,7 @@ func NewRabbitMQSender(amqpURL, queueName string) (*RabbitMQSender, error) {
 	}, nil
 }
 
-func (sender *RabbitMQSender) Send(task *repository.Task) error {
+func (sender *RabbitMQSender) Send(task TaskMessageRMQ) error {
 	body, err := json.Marshal(task)
 	if err != nil {
 		return err

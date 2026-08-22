@@ -2,6 +2,7 @@ package http
 
 import (
 	"Code-compilation-system/repository"
+	"Code-compilation-system/repository/rabbit_mq"
 	"Code-compilation-system/session"
 	"Code-compilation-system/worker"
 	"Code-compilation-system/worker/simulate"
@@ -28,10 +29,10 @@ type Object struct {
 	wg      sync.WaitGroup
 	ctx     context.Context // контекст для отмены задач
 	cancel  context.CancelFunc
-	//sender  repository.ObjectSender
+	sender  repository.ObjectSender
 }
 
-func NewObject(object repository.Repository, sm *session.Manager) *Object {
+func NewObject(object repository.Repository, sm *session.Manager, sender repository.ObjectSender) *Object {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Object{
 		repo:    object,
@@ -39,7 +40,7 @@ func NewObject(object repository.Repository, sm *session.Manager) *Object {
 		manager: sm,
 		ctx:     ctx,
 		cancel:  cancel,
-		//sender:  sender,
+		sender:  sender,
 	}
 }
 
@@ -158,7 +159,26 @@ func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	o.workHandler(id, task)
+	message := rabbit_mq.TaskMessageRMQ{
+		TaskID:     id.String(),
+		Translator: task.Translator,
+		Code:       task.Code,
+	}
+
+	err = o.sender.Send(message)
+	if err != nil {
+		log.Printf("Fail send task %s: %v", task.ID, err)
+		err = o.repo.UpdateStatus(task.ID, "error")
+		if err != nil {
+			log.Printf("Fail update task %s: %v", task.ID, err)
+		}
+		err = o.repo.UpdateResult(task.ID, "failed task")
+		if err != nil {
+			log.Printf("Fail result task %s: %v", task.ID, err)
+		}
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	createPostResponseTask(w, id)
 }
