@@ -60,6 +60,10 @@ type TaskResultResponse struct {
 // @Failure      500 {object} map[string]string "внутренняя ошибка сервера"
 // @Router       /status/{task_id} [get]
 func (o *Object) GetStatusHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	if ok {
+		log.Printf("User: %s посмотрел статус таски", userID.String())
+	}
 	req, err := parseGetRequest(r)
 	if err != nil {
 		http.Error(w, "Bad request parse", http.StatusBadRequest)
@@ -88,6 +92,10 @@ func (o *Object) GetStatusHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      500 {object} map[string]string "внутренняя ошибка сервера"
 // @Router       /result/{task_id} [get]
 func (o *Object) GetResultHandler(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	if ok {
+		log.Printf("User: %s посмотрел результат таски", userID.String())
+	}
 	req, err := parseGetRequest(r)
 	if err != nil {
 		http.Error(w, "Bad request parse", http.StatusBadRequest)
@@ -120,6 +128,10 @@ func (o *Object) GetResultHandler(w http.ResponseWriter, r *http.Request) {
 // @Failure      400 {object} map[string]string
 // @Router       /task [post]
 func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
+	userID, ok := r.Context().Value("userID").(uuid.UUID)
+	if ok {
+		log.Printf("User: %s положил таску на обработку", userID.String())
+	}
 	req, err := parsePostRequestTask(r)
 	if err != nil {
 		http.Error(w, "Bad request parse", http.StatusBadRequest)
