@@ -9,7 +9,10 @@ definitions:
     type: object
   http.PostRequestTask:
     properties:
-      data:
+      code:
+        type: string
+      tranlator:
+        description: В тесте опечатка)))))))))
         type: string
     type: object
   http.PostResponseTask:

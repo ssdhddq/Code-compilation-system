@@ -277,7 +277,11 @@ const docTemplate = `{
         "http.PostRequestTask": {
             "type": "object",
             "properties": {
-                "data": {
+                "code": {
+                    "type": "string"
+                },
+                "tranlator": {
+                    "description": "В тесте опечатка)))))))))",
                     "type": "string"
                 }
             }
