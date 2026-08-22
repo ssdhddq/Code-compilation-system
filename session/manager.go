@@ -68,6 +68,12 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (se
 	return
 }
 
+func (manager *Manager) GetSession(sid string) (Session, error) {
+	manager.lock.Lock()
+	defer manager.lock.Unlock()
+	return manager.provider.SessionRead(sid)
+}
+
 func (manager *Manager) SessionDestroy(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(manager.cookieName)
 	if err != nil || cookie.Value == "" {

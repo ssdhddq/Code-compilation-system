@@ -7,12 +7,13 @@ import (
 )
 
 type Task struct {
-	ID        uuid.UUID
-	Result    string
-	Status    string
-	CreatedAT time.Time
-	UpdatedAT time.Time
-	Data      string
+	ID         uuid.UUID
+	Result     string
+	Status     string
+	CreatedAT  time.Time
+	UpdatedAT  time.Time
+	Translator string
+	Code       string
 }
 
 type User struct {

@@ -25,7 +25,8 @@ func parseGetRequest(r *http.Request) (*getRequest, error) {
 }
 
 type PostRequestTask struct {
-	Data string `json:"data,omitempty"`
+	Translator string `json:"tranlator"` //В тесте опечатка)))))))))
+	Code       string `json:"code"`
 }
 
 func parsePostRequestTask(r *http.Request) (*PostRequestTask, error) {
@@ -33,7 +34,7 @@ func parsePostRequestTask(r *http.Request) (*PostRequestTask, error) {
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, fmt.Errorf("получение тела запроса: %v", err)
 	}
-	if req.Data == "" {
+	if req.Translator == "" || req.Code == "" {
 		return nil, fmt.Errorf("тело запроса пустое")
 	}
 	return &req, nil

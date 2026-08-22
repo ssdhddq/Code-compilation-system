@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -128,12 +129,13 @@ func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
 	id := uuid.New()
 
 	task := &repository.Task{
-		ID:        id,
-		Result:    "-",
-		Status:    "-",
-		CreatedAT: time.Time{},
-		UpdatedAT: time.Time{},
-		Data:      req.Data,
+		ID:         id,
+		Result:     "-",
+		Status:     "-",
+		CreatedAT:  time.Time{},
+		UpdatedAT:  time.Time{},
+		Translator: req.Translator,
+		Code:       req.Code,
 	}
 
 	err = o.repo.CreateTask(task)
@@ -215,6 +217,28 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 
 func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//Это я чисто для тестов сделал, вариант с токеном в хэдере
+		authHeader := r.Header.Get("Authorization")
+		if authHeader != "" {
+			token := strings.TrimPrefix(authHeader, "Bearer")
+			token = strings.TrimSpace(token)
+			sess, err := o.manager.GetSession(token)
+			if err == nil {
+				userID := sess.Get("userID")
+				if userID != nil {
+					userIDStr, ok := userID.(string)
+					if ok {
+						userUUID, err := uuid.Parse(userIDStr)
+						if err == nil {
+							ctx := context.WithValue(r.Context(), "userID", userUUID)
+							request.ServeHTTP(w, r.WithContext(ctx))
+							return
+						}
+					}
+				}
+			}
+		}
+
 		sess := o.manager.SessionStart(w, r)
 		if sess == nil {
 			http.Error(w, "Unauth", http.StatusUnauthorized)
@@ -246,14 +270,14 @@ func (o *Object) WrapHandlers(r chi.Router) {
 	r.Get("/swagger/*", swagger.Handler(
 		swagger.URL("/swagger/doc.json"),
 	))
-	r.Get("/status/{task_id}", o.GetStatusHandler)
-	r.Get("/result/{task_id}", o.GetResultHandler)
 	r.Post("/register", o.PostHandlerRegister)
 	r.Post("/login", o.postHandlerAuth)
 
 	r.Group(func(r chi.Router) {
 		r.Use(o.AuthMiddleware)
 		r.Post("/task", o.PostHandlerTask)
+		r.Get("/status/{task_id}", o.GetStatusHandler)
+		r.Get("/result/{task_id}", o.GetResultHandler)
 	})
 }
 
@@ -277,8 +301,8 @@ func (o *Object) ShutdownTasks(timeout time.Duration) bool {
 func (o *Object) workHandler(id uuid.UUID, task *repository.Task) {
 	o.wg.Add(1)
 	go func() {
-		if err := o.repo.UpdateStatus(id, "in process"); err != nil {
-			log.Printf("failed set in process to task: %s", id.String())
+		if err := o.repo.UpdateStatus(id, "in_progress"); err != nil {
+			log.Printf("failed set in_progress to task: %s", id.String())
 			if err = o.repo.UpdateStatus(id, "error"); err != nil {
 				log.Printf("failed set error to task: %s", id.String())
 			}
