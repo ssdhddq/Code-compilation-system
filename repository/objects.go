@@ -23,3 +23,7 @@ type ObjectUser interface {
 	AuthUser(string, string) (bool, *uuid.UUID)
 	DeleteUser(uuid.UUID) error
 }
+
+type ObjectSender interface {
+	Send(task *Task) error
+}

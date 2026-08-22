@@ -28,6 +28,7 @@ type Object struct {
 	wg      sync.WaitGroup
 	ctx     context.Context // контекст для отмены задач
 	cancel  context.CancelFunc
+	//sender  repository.ObjectSender
 }
 
 func NewObject(object repository.Repository, sm *session.Manager) *Object {
@@ -38,6 +39,7 @@ func NewObject(object repository.Repository, sm *session.Manager) *Object {
 		manager: sm,
 		ctx:     ctx,
 		cancel:  cancel,
+		//sender:  sender,
 	}
 }
 
