@@ -28,6 +28,10 @@ func (o *ObjectUser) RegisterUser(user *repository.User) error {
 	if _, exist := o.data[user.Id]; exist {
 		return repository.KeyExists
 	}
+	if _, exist := o.logins[user.Login]; exist {
+		log.Printf("Пользователь: %s уже зарегестрирован", user.Login)
+		return nil
+	}
 	log.Printf("RegisterUser: login='%s', password='%s'", user.Login, user.Password)
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
@@ -54,7 +58,7 @@ func (o *ObjectUser) AuthUser(login, password string) (bool, *uuid.UUID) {
 func (o *ObjectUser) DeleteUser(u uuid.UUID) error {
 	o.m.Lock()
 	defer o.m.Unlock()
-	if user, exist := o.data[u]; exist {
+	if user, exist := o.data[u]; !exist {
 		return repository.NotFound
 	} else {
 		delete(o.data, u)
