@@ -3,7 +3,6 @@ package ram_storage
 import (
 	"Code-compilation-system/repository"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -69,7 +68,7 @@ func (o *ObjectTask) UpdateStatus(id uuid.UUID, status string) error {
 		return repository.NotFound
 	}
 	o.data[id].Status = status
-	o.data[id].UpdatedAT = time.Now()
+
 	return nil
 }
 
@@ -80,6 +79,6 @@ func (o *ObjectTask) UpdateResult(id uuid.UUID, result string) error {
 		return repository.NotFound
 	}
 	o.data[id].Result = result
-	o.data[id].UpdatedAT = time.Now()
+
 	return nil
 }

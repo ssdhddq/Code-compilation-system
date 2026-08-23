@@ -68,6 +68,22 @@ func (manager *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (se
 	return
 }
 
+func (manager *Manager) GetSessionByCookie(r *http.Request) Session {
+	cookie, err := r.Cookie(manager.cookieName)
+	if err != nil || cookie.Value == "" {
+		return nil
+	}
+	sid, err := url.QueryUnescape(cookie.Value)
+	if err != nil {
+		return nil
+	}
+	sess, err := manager.provider.SessionRead(sid)
+	if err != nil {
+		return nil
+	}
+	return sess
+}
+
 func (manager *Manager) GetSession(sid string) (Session, error) {
 	manager.lock.Lock()
 	defer manager.lock.Unlock()

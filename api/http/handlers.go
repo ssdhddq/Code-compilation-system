@@ -145,9 +145,7 @@ func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
 	task := &repository.Task{
 		ID:         id,
 		Result:     "-",
-		Status:     "-",
-		CreatedAT:  time.Time{},
-		UpdatedAT:  time.Time{},
+		Status:     "in_progress",
 		Translator: req.Translator,
 		Code:       req.Code,
 	}
@@ -224,16 +222,15 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to save sess userID", http.StatusInternalServerError)
 		return
 	}
-	w.Header().Set("Content-Type", "application/jsom")
+	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": sess.SessionID()})
-	w.WriteHeader(http.StatusOK)
 }
 
 func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Это я чисто для тестов сделал, вариант с токеном в хэдере
 		authHeader := r.Header.Get("Authorization")
-		if authHeader != "" {
+		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
 			token := strings.TrimPrefix(authHeader, "Bearer")
 			token = strings.TrimSpace(token)
 			sess, err := o.manager.GetSession(token)
@@ -253,7 +250,7 @@ func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 			}
 		}
 
-		sess := o.manager.SessionStart(w, r)
+		sess := o.manager.GetSessionByCookie(r)
 		if sess == nil {
 			http.Error(w, "Unauth", http.StatusUnauthorized)
 			return
@@ -275,7 +272,6 @@ func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 		}
 		ctx := context.WithValue(r.Context(), "userID", userUUID)
 		request.ServeHTTP(w, r.WithContext(ctx))
-
 	})
 }
 
