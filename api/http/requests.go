@@ -56,7 +56,7 @@ func parsePostRequestReqisterAndAuth(r *http.Request) (*PostRequestRegisterAndAu
 	if req.Username == "" {
 		return nil, fmt.Errorf("username не может быть пустым")
 	}
-	if req.Username == "" {
+	if req.Password == "" {
 		return nil, fmt.Errorf("password не может быть пустым")
 	}
 	return &req, nil
