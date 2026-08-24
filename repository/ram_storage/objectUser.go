@@ -30,7 +30,7 @@ func (o *ObjectUser) RegisterUser(user *repository.User) error {
 	}
 	if _, exist := o.logins[user.Login]; exist {
 		log.Printf("Пользователь: %s уже зарегестрирован", user.Login)
-		return nil
+		return repository.KeyExists
 	}
 	log.Printf("RegisterUser: login='%s', password='%s'", user.Login, user.Password)
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
