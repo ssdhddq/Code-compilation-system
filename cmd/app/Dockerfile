@@ -17,5 +17,8 @@ WORKDIR app
 RUN apk add --no-cache curl
 
 COPY --from=build /build/main ./main
+COPY --from=build /build/config/config.yaml ./config/config.yaml
 
-CMD ["/app/main", "--port","8080", "--host", "0.0.0.0" ]
+EXPOSE 8080
+
+CMD ["./main", "-config", "config/config.yaml"]

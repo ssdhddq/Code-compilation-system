@@ -2,6 +2,7 @@ package main
 
 import (
 	"Code-compilation-system/api/http"
+	"Code-compilation-system/config"
 	"Code-compilation-system/repository/rabbit_mq"
 	"Code-compilation-system/repository/ram_storage"
 	"Code-compilation-system/session"
@@ -29,6 +30,14 @@ var globalSession *session.Manager
 // @host            localhost:8080
 // @BasePath        /
 func main() {
+	configPath := flag.String("config", "config/config.yaml", "path to config file")
+	flag.Parse()
+
+	cfg, err := config.Load(*configPath)
+	if err != nil {
+		log.Fatalf("failed to load config: %v", err)
+	}
+
 	session.RegisterProvider("ram_storage", ram_storage.Pvr)
 	manager, err := session.NewManager("ram_storage", "sessionID", 86400)
 	if err != nil {
@@ -41,20 +50,18 @@ func main() {
 	t := ram_storage.NewObjectTask()
 	repo := ram_storage.NewObject(u, t)
 
-	senderRMQ, err := rabbit_mq.NewRabbitMQSender("", "") // TODO остановился тут
+	amqpURL := fmt.Sprintf("amqp://guest:guest@%s:%d", cfg.RabbitMQ.HostName, cfg.RabbitMQ.Port)
+	senderRMQ, err := rabbit_mq.NewRabbitMQSender(amqpURL, cfg.RabbitMQ.QueueName)
 	if err != nil {
-		log.Fatal("failed creating rabbitMQ: %w", err)
+		log.Fatalf("failed creating rabbitMQ: %s", err.Error())
 	}
 
 	handler := http.NewObject(repo, manager, senderRMQ)
 
-	host := flag.String("host", "0.0.0.0", "host addr")
-	port := flag.Int("port", 8080, "port addr")
-
 	r := chi.NewRouter()
 	handler.WrapHandlers(r)
 	srv := &httpLib.Server{
-		Addr:    fmt.Sprintf("%s:%d", *host, *port),
+		Addr:    cfg.HTTPConfig.Address,
 		Handler: r,
 	}
 	go func() {
