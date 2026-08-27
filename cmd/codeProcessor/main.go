@@ -4,10 +4,12 @@ import (
 	"Code-compilation-system/codeProcessor/code"
 	"Code-compilation-system/config"
 	"Code-compilation-system/repository/rabbit_mq"
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -104,5 +106,25 @@ func main() {
 }
 
 func sendCommit(taskID, result, status string) error {
+	myMap := map[string]string {
+		"task_id": taskID,
+		"result": result,
+		"status": status,
+	}
+
+	body, err := json.Marshal(myMap)
+	if err != nil {
+		return fmt.Errorf("marshal map: %s", err.Error())
+	}
+
+	resp, err := http.Post("http://app:8080/commit", "application/json", bytes.NewReader(body))
+	if err != nil {
+		return fmt.Errorf("post \"http://app:8080/commit\" %s", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("\"http://app:8080/commit\" returned status %d", resp.StatusCode)
+	}
 	return nil
 }
