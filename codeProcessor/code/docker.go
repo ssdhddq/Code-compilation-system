@@ -8,6 +8,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
 )
@@ -60,9 +61,33 @@ func RunInDocker(translator, code string) (string, error) {
 	if _, err = cli.ContainerStart(ctx, resp.ID, client.ContainerStartOptions{}); err != nil {
 		return "", fmt.Errorf("start to container: %s, %s", resp.ID, err.Error())
 	}
-	//TODO закончил тут
 
-	return "", nil
+	statusCh := cli.ContainerWait(ctx, resp.ID, client.ContainerWaitOptions{Condition: container.WaitConditionNotRunning})
+
+	select {
+	case err = <-statusCh.Error:
+		return "", fmt.Errorf("error waiting: %s", err.Error())
+	case <-statusCh.Result:
+	case <-ctx.Done():
+		return "", fmt.Errorf("timeout context done")
+	}
+
+	output, err := cli.ContainerLogs(ctx, resp.ID, client.ContainerLogsOptions{ShowStderr: true, ShowStdout: true})
+	if err != nil {
+		return "", fmt.Errorf("output: %s", err.Error())
+	}
+	defer output.Close()
+
+	var stdout, stderr bytes.Buffer
+	_, err = stdcopy.StdCopy(&stdout, &stderr, output)
+	if err != nil {
+		return "", fmt.Errorf("parse output: %w", err)
+	}
+
+	if stderr.Len() > 0 {
+		return stdout.String(), fmt.Errorf("stderr: %s", stderr.String())
+	}
+	return stdout.String(), nil
 }
 
 func getFileNameRun(translator string) (string, string) {
