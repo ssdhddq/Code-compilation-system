@@ -37,7 +37,7 @@ func RunInDocker(translator, code string) (string, error) {
 				WorkingDir: "/code",
 			},
 			HostConfig: &container.HostConfig{
-				AutoRemove: true,
+				Memory: 256 * 1024 * 1024,
 			},
 			NetworkingConfig: nil,
 			Platform:         nil,

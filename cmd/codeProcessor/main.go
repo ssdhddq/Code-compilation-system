@@ -69,13 +69,15 @@ func main() {
 				continue
 			}
 
-			log.Printf("Task in process id: %s, translator: %s", tempMessage.TaskID, tempMessage.Translator)
+			log.Printf("Task in process id: %s, translator: %s, code: %s", tempMessage.TaskID, tempMessage.Translator, tempMessage.Code)
 
 			result, err := code.RunInDocker(tempMessage.Translator, tempMessage.Code)
 			var status string
 			if err != nil {
 				status = "error"
 				result = err.Error()
+				log.Printf("RunInDocker error for task %s: %s", tempMessage.TaskID, err.Error())
+				sendCommit(tempMessage.TaskID, err.Error(), "error")
 			} else {
 				status = "ready"
 			}
@@ -86,7 +88,7 @@ func main() {
 				continue
 			}
 
-			log.Printf("Task ready id: %s, status: %s", tempMessage.TaskID, status)
+			log.Printf("Task ready id: %s, status: %s, result: %s", tempMessage.TaskID, status, result)
 			d.Ack(false)
 		}
 
@@ -106,10 +108,10 @@ func main() {
 }
 
 func sendCommit(taskID, result, status string) error {
-	myMap := map[string]string {
+	myMap := map[string]string{
 		"task_id": taskID,
-		"result": result,
-		"status": status,
+		"result":  result,
+		"status":  status,
 	}
 
 	body, err := json.Marshal(myMap)

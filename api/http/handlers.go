@@ -302,6 +302,7 @@ func (o *Object) WrapHandlers(r chi.Router) {
 	))
 	r.Post("/register", o.PostHandlerRegister)
 	r.Post("/login", o.postHandlerAuth)
+	r.Post("/commit", o.CommitHandler)
 
 	r.Group(func(r chi.Router) {
 		r.Use(o.AuthMiddleware)
@@ -309,6 +310,46 @@ func (o *Object) WrapHandlers(r chi.Router) {
 		r.Get("/status/{task_id}", o.GetStatusHandler)
 		r.Get("/result/{task_id}", o.GetResultHandler)
 	})
+}
+
+type commitRequest struct {
+	TaskID string `json:"task_id"`
+	Result string `json:"result"`
+	Status string `json:"status"`
+}
+
+func (o *Object) CommitHandler(w http.ResponseWriter, r *http.Request) {
+	var req commitRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.TaskID == "" || req.Status == "" {
+		http.Error(w, "Nil task_id or status", http.StatusBadRequest)
+		return
+	}
+
+	id, err := uuid.Parse(req.TaskID)
+	if err != nil {
+		http.Error(w, "Invalid format id", http.StatusBadRequest)
+		return
+	}
+
+	if err := o.repo.UpdateResult(id, req.Result); err != nil {
+		log.Printf("Fail update result for task %s: %s", id, err.Error())
+		http.Error(w, "Fail update result", http.StatusInternalServerError)
+		return
+	}
+
+	if err := o.repo.UpdateStatus(id, req.Status); err != nil {
+		log.Printf("Fail update status for task %s: %s", id, err.Error())
+		http.Error(w, "Fail update status", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Task %s updated, status: %s", id, req.Status)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (o *Object) ShutdownTasks(timeout time.Duration) bool {

@@ -1,12 +1,12 @@
-FROM golang:1.25-alpine AS build
+FROM golang:1.27-alpine AS build
 
 WORKDIR /build
 
-COPY ../../go.mod go.sum ./
+COPY go.mod go.sum ./
 
 RUN go mod download
 
-COPY ../.. .
+COPY . .
 
 RUN go build -o main ./cmd/app
 

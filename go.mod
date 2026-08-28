@@ -1,11 +1,11 @@
 module Code-compilation-system
 
-go 1.25.0
-
-require github.com/google/uuid v1.6.0
+go 1.27.0
 
 require (
 	github.com/go-chi/chi/v5 v5.3.1
+	github.com/google/uuid v1.6.0
+	github.com/moby/moby/api v1.55.0
 	github.com/moby/moby/client v0.5.1
 	github.com/streadway/amqp v1.1.0
 	github.com/swaggo/http-swagger/v2 v2.0.2
@@ -36,7 +36,6 @@ require (
 	github.com/go-openapi/swag/typeutils v0.28.0 // indirect
 	github.com/go-openapi/swag/yamlutils v0.28.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
-	github.com/moby/moby/api v1.55.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/swaggo/files/v2 v2.0.0 // indirect
