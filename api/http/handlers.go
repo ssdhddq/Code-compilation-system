@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -248,28 +247,6 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 
 func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//Это я чисто для тестов сделал, вариант с токеном в хэдере
-		authHeader := r.Header.Get("Authorization")
-		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-			token := strings.TrimPrefix(authHeader, "Bearer")
-			token = strings.TrimSpace(token)
-			sess, err := o.manager.GetSession(token)
-			if err == nil {
-				userID := sess.Get("userID")
-				if userID != nil {
-					userIDStr, ok := userID.(string)
-					if ok {
-						userUUID, err := uuid.Parse(userIDStr)
-						if err == nil {
-							ctx := context.WithValue(r.Context(), "userID", userUUID)
-							request.ServeHTTP(w, r.WithContext(ctx))
-							return
-						}
-					}
-				}
-			}
-		}
-
 		sess := o.manager.GetSessionByCookie(r)
 		if sess == nil {
 			http.Error(w, "Unauth", http.StatusUnauthorized)

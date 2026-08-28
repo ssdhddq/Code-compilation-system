@@ -26,7 +26,7 @@ func parseGetRequest(r *http.Request) (*getRequest, error) {
 }
 
 type PostRequestTask struct {
-	Translator string `json:"tranlator"` //В тесте опечатка)))))))))
+	Translator string `json:"translator"`
 	Code       string `json:"code"`
 }
 
