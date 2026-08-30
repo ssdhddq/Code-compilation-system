@@ -105,6 +105,9 @@ func main() {
 	}
 	log.Println("CodeProcessor stopped")
 
+	log.Println("App exit")
+	os.Exit(0)
+
 }
 
 func sendCommit(taskID, result, status string) error {
@@ -129,4 +132,5 @@ func sendCommit(taskID, result, status string) error {
 		return fmt.Errorf("\"http://app:8080/commit\" returned status %d", resp.StatusCode)
 	}
 	return nil
+
 }

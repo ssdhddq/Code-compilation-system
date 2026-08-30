@@ -280,6 +280,7 @@ func (o *Object) WrapHandlers(r chi.Router) {
 	r.Post("/register", o.PostHandlerRegister)
 	r.Post("/login", o.postHandlerAuth)
 	r.Post("/commit", o.CommitHandler)
+	r.Get("/healthy", o.Healthy)
 
 	r.Group(func(r chi.Router) {
 		r.Use(o.AuthMiddleware)
@@ -370,4 +371,9 @@ func (o *Object) workHandler(id uuid.UUID, task *repository.Task) {
 			}
 		})
 	}()
+}
+
+func (o *Object) Healthy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }

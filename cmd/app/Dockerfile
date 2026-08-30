@@ -12,7 +12,7 @@ RUN go build -o main ./cmd/app
 
 FROM alpine AS runner
 
-WORKDIR app
+WORKDIR /app
 
 RUN apk add --no-cache curl
 

@@ -8,6 +8,12 @@ services:
     depends_on:
       broker:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/healthy" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   app_test:
     build:
@@ -17,7 +23,7 @@ services:
       - BASE_URL=http://app:8080
     depends_on:
       app:
-        condition: service_started
+        condition: service_healthy
     profiles: ['test']
 
 
