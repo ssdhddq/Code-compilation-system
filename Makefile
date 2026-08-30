@@ -2,11 +2,11 @@
 
 launch_services:
 	docker compose up --build
-	docker build -t code-processor:latest -f processor/docker/Dockerfile processor/docker
+	docker build -t code-processor:latest -f codeProcessor/docker/Dockerfile codeProcessor/docker
 
 launch_with_tests:
 	docker compose --profile test build
-	docker build -t code-processor:latest -f processor/docker/Dockerfile processor/docker
+	docker build -t code-processor:latest -f codeProcessor/docker/Dockerfile codeProcessor/docker
 	docker compose --profile test up --abort-on-container-exit --exit-code-from app_test
 
 stop_services:
