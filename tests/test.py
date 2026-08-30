@@ -3,8 +3,9 @@ import pytest
 import requests
 import uuid
 import time
+import os
 
-BASE_URL = "http://127.0.0.1:8080"
+BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8080")
 
 @pytest.fixture(scope='function')
 def user_data():
@@ -81,7 +82,7 @@ def test_task_status_and_result(client_session):
         if data['status'] == 'ready':
             break
          
-        assert data['status'] == 'in_progress', f'undefined status: {data['status']}!'
+        assert data['status'] == 'in_progress', f"undefined status: {data['status']}!"
         retry -= 1
         time.sleep(3)
     assert retry > 0, "task is still in progress!"

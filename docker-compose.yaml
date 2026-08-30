@@ -9,6 +9,17 @@ services:
       broker:
         condition: service_healthy
 
+  app_test:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile
+    environment:
+      - BASE_URL=http://app:8080
+    depends_on:
+      app:
+        condition: service_started
+    profiles: ['test']
+
 
   broker:
     image: "rabbitmq:3-management"
@@ -17,7 +28,7 @@ services:
       - "15672:15672"
     healthcheck:
       test: rabbitmq-diagnostics -q ping
-      interval: 30s
+      interval: 10s
       timeout: 30s
       retries: 3
 
