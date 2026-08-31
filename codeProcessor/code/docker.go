@@ -8,7 +8,6 @@ import (
 	"io"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/moby/moby/api/pkg/stdcopy"
 	"github.com/moby/moby/api/types/container"
 	"github.com/moby/moby/client"
@@ -32,7 +31,6 @@ func RunInDocker(translator, code string) (string, error) {
 
 	resp, err := cli.ContainerCreate(ctx,
 		client.ContainerCreateOptions{
-			Name: uuid.New().String(),
 			Config: &container.Config{
 				Image:      "code-processor:latest",
 				Cmd:        []string{"sh", "-c", run},
@@ -42,7 +40,7 @@ func RunInDocker(translator, code string) (string, error) {
 				Memory:         256 * 1024 * 1024,
 				NanoCPUs:       500000000,
 				PidsLimit:      &pidsLimit,
-				ReadonlyRootfs: true,
+				ReadonlyRootfs: false,
 			},
 			NetworkingConfig: nil,
 			Platform:         nil,
