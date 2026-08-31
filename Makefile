@@ -11,3 +11,4 @@ launch_with_tests:
 
 stop_services:
 	docker compose --profile test down
+3
