@@ -69,19 +69,6 @@ func main() {
 				continue
 			}
 
-			maxRetry := 5
-			counterRetry := 0
-			if death, ok := d.Headers["x-death"]; ok {
-				if deaths, ok := death.([]interface{}); ok {
-					counterRetry = len(deaths)
-				}
-			}
-			if counterRetry >= maxRetry {
-				log.Printf("Max try send commit: %d", counterRetry)
-				d.Ack(false)
-				continue
-			}
-
 			log.Printf("Task in process id: %s, translator: %s, code: %s", tempMessage.TaskID, tempMessage.Translator, tempMessage.Code)
 
 			result, err := code.RunInDocker(tempMessage.Translator, tempMessage.Code)
@@ -97,7 +84,7 @@ func main() {
 
 			if err := sendCommit(tempMessage.TaskID, result, status); err != nil {
 				log.Printf("Error send commit task id: %s, %s", tempMessage.TaskID, err.Error())
-				d.Nack(false, true)
+				d.Nack(false, false)
 				continue
 			}
 
