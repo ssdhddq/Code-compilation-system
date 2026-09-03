@@ -26,13 +26,13 @@ func parseGetRequest(r *http.Request) (*getRequest, error) {
 }
 
 type PostRequestTask struct {
-	Translator string `json:"tranlator"` //В тесте опечатка)))))))))
+	Translator string `json:"translator"`
 	Code       string `json:"code"`
 }
 
 func parsePostRequestTask(r *http.Request) (*PostRequestTask, error) {
 	var req PostRequestTask
-	r.Body = http.MaxBytesReader(nil, r.Body, 500000) //пока оставлю 500КБ
+	r.Body = http.MaxBytesReader(nil, r.Body, 500000)
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Ошибка получение тела запроса: %v", err)
 		return nil, fmt.Errorf("получение тела запроса: %v", err)

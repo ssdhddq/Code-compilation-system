@@ -2,6 +2,7 @@ package http
 
 import (
 	"Code-compilation-system/repository"
+	"Code-compilation-system/repository/rabbit_mq"
 	"Code-compilation-system/session"
 	"Code-compilation-system/worker"
 	"Code-compilation-system/worker/simulate"
@@ -9,7 +10,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
 	"sync"
 	"time"
 
@@ -28,10 +28,10 @@ type Object struct {
 	wg      sync.WaitGroup
 	ctx     context.Context // контекст для отмены задач
 	cancel  context.CancelFunc
-	//sender  repository.ObjectSender
+	sender  repository.ObjectSender
 }
 
-func NewObject(object repository.Repository, sm *session.Manager) *Object {
+func NewObject(object repository.Repository, sm *session.Manager, sender repository.ObjectSender) *Object {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &Object{
 		repo:    object,
@@ -39,7 +39,7 @@ func NewObject(object repository.Repository, sm *session.Manager) *Object {
 		manager: sm,
 		ctx:     ctx,
 		cancel:  cancel,
-		//sender:  sender,
+		sender:  sender,
 	}
 }
 
@@ -156,7 +156,26 @@ func (o *Object) PostHandlerTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	o.workHandler(id, task)
+	message := rabbit_mq.TaskMessageRMQ{
+		TaskID:     id.String(),
+		Translator: task.Translator,
+		Code:       task.Code,
+	}
+
+	err = o.sender.Send(message)
+	if err != nil {
+		log.Printf("Fail send task %s: %v", task.ID, err)
+		err = o.repo.UpdateStatus(task.ID, "error")
+		if err != nil {
+			log.Printf("Fail update task %s: %v", task.ID, err)
+		}
+		err = o.repo.UpdateResult(task.ID, "failed task")
+		if err != nil {
+			log.Printf("Fail result task %s: %v", task.ID, err)
+		}
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
 
 	createPostResponseTask(w, id)
 }
@@ -228,28 +247,6 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 
 func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		//Это я чисто для тестов сделал, вариант с токеном в хэдере
-		authHeader := r.Header.Get("Authorization")
-		if authHeader != "" && strings.HasPrefix(authHeader, "Bearer ") {
-			token := strings.TrimPrefix(authHeader, "Bearer")
-			token = strings.TrimSpace(token)
-			sess, err := o.manager.GetSession(token)
-			if err == nil {
-				userID := sess.Get("userID")
-				if userID != nil {
-					userIDStr, ok := userID.(string)
-					if ok {
-						userUUID, err := uuid.Parse(userIDStr)
-						if err == nil {
-							ctx := context.WithValue(r.Context(), "userID", userUUID)
-							request.ServeHTTP(w, r.WithContext(ctx))
-							return
-						}
-					}
-				}
-			}
-		}
-
 		sess := o.manager.GetSessionByCookie(r)
 		if sess == nil {
 			http.Error(w, "Unauth", http.StatusUnauthorized)
@@ -282,6 +279,8 @@ func (o *Object) WrapHandlers(r chi.Router) {
 	))
 	r.Post("/register", o.PostHandlerRegister)
 	r.Post("/login", o.postHandlerAuth)
+	r.Post("/commit", o.CommitHandler)
+	r.Get("/healthy", o.Healthy)
 
 	r.Group(func(r chi.Router) {
 		r.Use(o.AuthMiddleware)
@@ -289,6 +288,46 @@ func (o *Object) WrapHandlers(r chi.Router) {
 		r.Get("/status/{task_id}", o.GetStatusHandler)
 		r.Get("/result/{task_id}", o.GetResultHandler)
 	})
+}
+
+type commitRequest struct {
+	TaskID string `json:"task_id"`
+	Result string `json:"result"`
+	Status string `json:"status"`
+}
+
+func (o *Object) CommitHandler(w http.ResponseWriter, r *http.Request) {
+	var req commitRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Bad request invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.TaskID == "" || req.Status == "" {
+		http.Error(w, "Nil task_id or status", http.StatusBadRequest)
+		return
+	}
+
+	id, err := uuid.Parse(req.TaskID)
+	if err != nil {
+		http.Error(w, "Invalid format id", http.StatusBadRequest)
+		return
+	}
+
+	if err := o.repo.UpdateResult(id, req.Result); err != nil {
+		log.Printf("Fail update result for task %s: %s", id, err.Error())
+		http.Error(w, "Fail update result", http.StatusInternalServerError)
+		return
+	}
+
+	if err := o.repo.UpdateStatus(id, req.Status); err != nil {
+		log.Printf("Fail update status for task %s: %s", id, err.Error())
+		http.Error(w, "Fail update status", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Task %s updated, status: %s", id, req.Status)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (o *Object) ShutdownTasks(timeout time.Duration) bool {
@@ -332,4 +371,9 @@ func (o *Object) workHandler(id uuid.UUID, task *repository.Task) {
 			}
 		})
 	}()
+}
+
+func (o *Object) Healthy(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
 }

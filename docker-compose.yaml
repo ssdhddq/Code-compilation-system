@@ -1,0 +1,52 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: cmd/app/Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      broker:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/healthy" ]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  app_test:
+    build:
+      context: .
+      dockerfile: tests/Dockerfile
+    environment:
+      - BASE_URL=http://app:8080
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles: ['test']
+
+
+  broker:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 30s
+      retries: 3
+
+  codeprocessor:
+    build:
+      context: .
+      dockerfile: cmd/codeProcessor/Dockerfile
+    depends_on:
+      app:
+        condition: service_started
+      broker:
+        condition: service_healthy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped

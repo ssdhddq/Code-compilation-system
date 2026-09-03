@@ -14,6 +14,7 @@ type Task struct {
 	Code       string
 }
 
+// test
 type User struct {
 	Id       uuid.UUID
 	Login    string

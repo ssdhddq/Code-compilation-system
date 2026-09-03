@@ -1,6 +1,8 @@
 package repository
 
 import (
+	"Code-compilation-system/repository/rabbit_mq"
+
 	"github.com/google/uuid"
 )
 
@@ -25,5 +27,5 @@ type ObjectUser interface {
 }
 
 type ObjectSender interface {
-	Send(task *Task) error
+	Send(task rabbit_mq.TaskMessageRMQ) error
 }

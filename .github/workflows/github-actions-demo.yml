@@ -1,0 +1,36 @@
+name: Docker compose CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install Python dependencies
+        run: pip install pytest requests
+
+      - name: Build and run tests
+        run: make launch_with_tests
+
+      - name: Show logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Clean up
+        if: always()
+        run: docker compose down -v
