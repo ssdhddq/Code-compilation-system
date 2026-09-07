@@ -2,52 +2,55 @@ package postgres
 
 import (
 	"context"
-	"encoding/json"
+	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type SessionStore struct {
 	sid          string
+	userID       uuid.UUID
 	timeAccessed time.Time
 	value        map[any]any
 	pool         *pgxpool.Pool
 }
 
-func (s *SessionStore) Set(key, value any) error {
-	s.value[key] = value
-	return s.updateData()
-}
-
-func (s *SessionStore) Get(key any) any {
-	if v, ok := s.value[key]; ok {
-		return v
+func (s *SessionStore) Set(key, value interface{}) error {
+	if keyStr, ok := key.(string); ok && keyStr == "userID" {
+		if userIDStr, ok := value.(string); ok {
+			id, err := uuid.Parse(userIDStr)
+			if err != nil {
+				return err
+			}
+			s.userID = id
+			query := `UPDATE sessions SET user_id = $1 WHERE session_id = $2`
+			_, err = s.pool.Exec(context.Background(), query, id, s.sid)
+			return err
+		}
+		return fmt.Errorf("invalid userID value")
 	}
 	return nil
 }
 
-func (s *SessionStore) Delete(key any) error {
-	delete(s.value, key)
-	return s.updateData()
+func (s *SessionStore) Get(key interface{}) interface{} {
+	if keyStr, ok := key.(string); ok && keyStr == "userID" {
+		return s.userID.String()
+	}
+	return nil
+}
+
+func (s *SessionStore) Delete(key interface{}) error {
+	if keyStr, ok := key.(string); ok && keyStr == "userID" {
+		s.userID = uuid.Nil
+		query := `UPDATE sessions SET user_id = NULL WHERE session_id = $1`
+		_, err := s.pool.Exec(context.Background(), query, s.sid)
+		return err
+	}
+	return nil
 }
 
 func (s *SessionStore) SessionID() string {
 	return s.sid
-}
-
-func (s *SessionStore) updateData() error {
-	jsonData := make(map[string]any)
-	for k, v := range s.value {
-		if str, ok := k.(string); ok {
-			jsonData[str] = v
-		}
-	}
-	bytes, err := json.Marshal(jsonData)
-	if err != nil {
-		return err
-	}
-	query := `UPDATE sessions SET data = $1 WHERE session_id = $2`
-	_, err = s.pool.Exec(context.Background(), query, bytes, s.sid)
-	return err
 }
