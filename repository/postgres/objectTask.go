@@ -29,7 +29,7 @@ func (r *Object) SaveTask(uuid uuid.UUID, task *repository.Task) error {
 }
 
 func (r *Object) CreateTask(task *repository.Task) error {
-	query := `INSERT INTO tasks (id, translator, code, result, status) VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	query := `INSERT INTO tasks (id, translator, code, result, status) VALUES ($1, $2, $3, $4, $5)`
 	_, err := r.Pool.Exec(context.Background(), query, task.ID, task.Translator, task.Code, task.Result, task.Status)
 	return err
 }

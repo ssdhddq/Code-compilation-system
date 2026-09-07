@@ -204,6 +204,7 @@ func (o *Object) PostHandlerRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	err = o.repo.RegisterUser(&newUser)
 	if err != nil {
+		log.Printf("RegisterUser error: %v", err)
 		errorHandler(w, err)
 		return
 	}

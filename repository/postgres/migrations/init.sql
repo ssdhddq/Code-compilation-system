@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS tasks (
     id UUID PRIMARY KEY,
     translator TEXT NOT NULL,
     code TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'default',
+    result TEXT,
+    status TEXT NOT NULL DEFAULT 'default'
 );
 
 CREATE INDEX idx_session_user_id ON sessions(user_id);

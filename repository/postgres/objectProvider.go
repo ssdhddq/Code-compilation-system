@@ -20,7 +20,7 @@ func NewProvider(pool *pgxpool.Pool) *Provider {
 func (p *Provider) SessionInit(sid string) (session.Session, error) {
 	timeAccessed := time.Now().Add(24 * time.Hour)
 	query := `INSERT INTO sessions (session_id, user_id, expires_at) VALUES ($1, $2, $3)`
-	_, err := p.pool.Exec(context.Background(), query, sid, uuid.Nil, timeAccessed)
+	_, err := p.pool.Exec(context.Background(), query, sid, nil, timeAccessed)
 	if err != nil {
 		return nil, err
 	}

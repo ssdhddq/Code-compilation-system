@@ -9,8 +9,13 @@ import (
 )
 
 func (r *Object) RegisterUser(user *repository.User) error {
-	query := `INSER INTO users (id, login, password_hash) VALUES ($1, $2, $3)`
-	_, err := r.Pool.Exec(context.Background(), query, user.Id, user.Login, user.Password)
+	hashed, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.Password = string(hashed)
+	query := `INSERT INTO users (id, login, password_hash) VALUES ($1, $2, $3)`
+	_, err = r.Pool.Exec(context.Background(), query, user.Id, user.Login, user.Password)
 	return err
 }
 
