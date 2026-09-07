@@ -33,3 +33,11 @@ func Load(path string) (*AppConfig, error) {
 	}
 	return &cfg, nil
 }
+
+type PostgresConfig struct {
+	Host     string `yaml:"host"`
+	Port     uint16 `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	DBName   string `yaml:"dbname"`
+}
