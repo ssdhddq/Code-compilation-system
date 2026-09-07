@@ -7,7 +7,7 @@ import (
 )
 
 type Object struct {
-	pool *pgxpool.Pool
+	Pool *pgxpool.Pool
 }
 
 func NewObject(conn string) (*Object, error) {
@@ -15,9 +15,9 @@ func NewObject(conn string) (*Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Object{pool: pool}, nil
+	return &Object{Pool: pool}, nil
 }
 
 func (r *Object) Close() {
-	r.pool.Close()
+	r.Pool.Close()
 }

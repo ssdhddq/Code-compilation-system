@@ -10,7 +10,7 @@ import (
 
 func (r *Object) RegisterUser(user *repository.User) error {
 	query := `INSER INTO users (id, login, password_hash) VALUES ($1, $2, $3)`
-	_, err := r.pool.Exec(context.Background(), query, user.Id, user.Login, user.Password)
+	_, err := r.Pool.Exec(context.Background(), query, user.Id, user.Login, user.Password)
 	return err
 }
 
@@ -18,7 +18,7 @@ func (r *Object) AuthUser(s string, s2 string) (bool, *uuid.UUID) {
 	var userID uuid.UUID
 	var hash string
 	query := `SELECT id, password_hash FROM users WHERE login = $1`
-	err := r.pool.QueryRow(context.Background(), query, s).Scan(&userID, &hash)
+	err := r.Pool.QueryRow(context.Background(), query, s).Scan(&userID, &hash)
 	if err != nil {
 		return false, nil
 	}
@@ -30,7 +30,7 @@ func (r *Object) AuthUser(s string, s2 string) (bool, *uuid.UUID) {
 
 func (r *Object) DeleteUser(uuid uuid.UUID) error {
 	query := `DELETE FROM users WHERE id = $1`
-	result, err := r.pool.Exec(context.Background(), query, uuid)
+	result, err := r.Pool.Exec(context.Background(), query, uuid)
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (r *Object) DeleteUser(uuid uuid.UUID) error {
 func (r *Object) GetUserByLogin(login string) (*repository.User, error) {
 	var user repository.User
 	query := `SELECT id, login, password_hash FROM users WHERE login = $1`
-	err := r.pool.QueryRow(context.Background(), query, login).Scan(&user.Id, &user.Login, &user.Password)
+	err := r.Pool.QueryRow(context.Background(), query, login).Scan(&user.Id, &user.Login, &user.Password)
 	if err != nil {
 		return nil, err
 	}
