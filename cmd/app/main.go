@@ -6,6 +6,7 @@ import (
 	"Code-compilation-system/repository/postgres"
 	"Code-compilation-system/repository/rabbit_mq"
 	"Code-compilation-system/repository/ram_storage"
+	"Code-compilation-system/repository/redis"
 	"Code-compilation-system/session"
 	"context"
 	"flag"
@@ -55,12 +56,15 @@ func main() {
 	sessionProvider := postgres.NewProvider(repo.Pool)
 	session.RegisterProvider("postgres", sessionProvider)
 
-	manager, err := session.NewManager("postgres", "sessionID", 86400)
+	redisProvider := redis.NewProvider("redis:6379", "", 0, 24*time.Hour)
+	session.RegisterProvider("redis", redisProvider)
+
+	manager, err := session.NewManager("redis", "sessionID", 86400)
 	if err != nil {
 		panic("manager not started")
 	}
 
-	go manager.GC()
+	//go manager.GC() в редисе есть GC
 
 	amqpURL := fmt.Sprintf("amqp://guest:guest@%s:%d", cfg.RabbitMQ.HostName, cfg.RabbitMQ.Port)
 	senderRMQ, err := rabbit_mq.NewRabbitMQSender(amqpURL, cfg.RabbitMQ.QueueName)

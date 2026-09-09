@@ -78,3 +78,7 @@ func (p *Provider) SessionDestroy(sid string) error {
 	ctx := context.Background()
 	return p.client.Del(ctx, sid).Err()
 }
+
+func (p *Provider) SessionGC(maxLifeTime int64) {
+	//В редисе есть GC
+}
