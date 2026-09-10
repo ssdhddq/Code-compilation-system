@@ -4,6 +4,7 @@ import (
 	"Code-compilation-system/session"
 	"context"
 	"encoding/json"
+	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -54,9 +55,11 @@ func (p *Provider) SessionRead(sid string) (session.Session, error) {
 		UserID string         `json:"user_id"`
 		Data   map[string]any `json:"data"`
 	}
+
 	if err := json.Unmarshal([]byte(val), &data); err != nil {
 		return nil, err
 	}
+	log.Printf("SessionRead: sid=%s, userID='%s'", sid, data.UserID)
 	store := &SessionStore{
 		client: p.client,
 		sid:    sid,

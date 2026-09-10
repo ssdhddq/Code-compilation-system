@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -31,6 +32,7 @@ func (s *SessionStore) Set(key, value any) error {
 	if keyStr == "userID" {
 		userIDStr, ok := value.(string)
 		if !ok {
+			log.Print("error conver to string")
 			return fmt.Errorf("userID not string")
 		}
 		s.userID = userIDStr
@@ -45,7 +47,11 @@ func (s *SessionStore) Get(key any) any {
 	if !ok {
 		return nil
 	}
+	if keyStr == "userID" {
+		return s.userID
+	}
 	return s.data[keyStr]
+
 }
 
 func (s *SessionStore) Delete(key any) error {
@@ -62,10 +68,15 @@ func (s *SessionStore) SessionID() string {
 }
 
 func (s *SessionStore) saveToRedis() error {
-	ctx := context.Background()
-	jsonData, err := json.Marshal(s.data)
+	data := struct {
+		UserID string `json:"user_id"`
+	}{
+		UserID: s.userID,
+	}
+	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
+	ctx := context.Background()
 	return s.client.Set(ctx, s.sid, jsonData, s.ttl).Err()
 }
