@@ -3,8 +3,10 @@ package main
 import (
 	"Code-compilation-system/api/http"
 	"Code-compilation-system/config"
+	"Code-compilation-system/repository/postgres"
 	"Code-compilation-system/repository/rabbit_mq"
 	"Code-compilation-system/repository/ram_storage"
+	"Code-compilation-system/repository/redis"
 	"Code-compilation-system/session"
 	"context"
 	"flag"
@@ -39,16 +41,30 @@ func main() {
 	}
 
 	session.RegisterProvider("ram_storage", ram_storage.Pvr)
-	manager, err := session.NewManager("ram_storage", "sessionID", 86400)
+
+	connString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s",
+		cfg.Postgres.User, cfg.Postgres.Password,
+		cfg.Postgres.Host, cfg.Postgres.Port,
+		cfg.Postgres.DBName)
+
+	repo, err := postgres.NewObject(connString)
+	if err != nil {
+		log.Fatalf("failed to connect to postgres: %v", err)
+	}
+	defer repo.Close()
+
+	sessionProvider := postgres.NewProvider(repo.Pool)
+	session.RegisterProvider("postgres", sessionProvider)
+
+	redisProvider := redis.NewProvider("redis:6379", "", 0, 24*time.Hour)
+	session.RegisterProvider("redis", redisProvider)
+
+	manager, err := session.NewManager("redis", "sessionID", 86400)
 	if err != nil {
 		panic("manager not started")
 	}
 
-	go manager.GC()
-
-	u := ram_storage.NewObjectUser()
-	t := ram_storage.NewObjectTask()
-	repo := ram_storage.NewObject(u, t)
+	//go manager.GC() в редисе есть GC
 
 	amqpURL := fmt.Sprintf("amqp://guest:guest@%s:%d", cfg.RabbitMQ.HostName, cfg.RabbitMQ.Port)
 	senderRMQ, err := rabbit_mq.NewRabbitMQSender(amqpURL, cfg.RabbitMQ.QueueName)

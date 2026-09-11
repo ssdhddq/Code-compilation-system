@@ -20,6 +20,7 @@ type HTTPConfig struct {
 type AppConfig struct {
 	RabbitMQ   `yaml:"rabbit_mq"`
 	HTTPConfig `yaml:"http"`
+	Postgres   `yaml:"postgres"`
 }
 
 func Load(path string) (*AppConfig, error) {
@@ -32,4 +33,12 @@ func Load(path string) (*AppConfig, error) {
 		return nil, fmt.Errorf("parse yaml: %w", err)
 	}
 	return &cfg, nil
+}
+
+type Postgres struct {
+	Host     string `yaml:"host"`
+	Port     uint16 `yaml:"port"`
+	User     string `yaml:"user"`
+	Password string `yaml:"password"`
+	DBName   string `yaml:"dbname"`
 }

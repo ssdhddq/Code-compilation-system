@@ -204,6 +204,7 @@ func (o *Object) PostHandlerRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	err = o.repo.RegisterUser(&newUser)
 	if err != nil {
+		log.Printf("RegisterUser error: %v", err)
 		errorHandler(w, err)
 		return
 	}
@@ -238,8 +239,11 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := sess.Set("userID", id.String()); err != nil {
+		log.Printf("Login failed: %v", err)
 		http.Error(w, "Failed to save sess userID", http.StatusInternalServerError)
 		return
+	} else {
+		log.Print("Success login")
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": sess.SessionID()})
@@ -247,11 +251,13 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 
 func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("AuthMiddleware: cookies=%v", r.Cookies())
 		sess := o.manager.GetSessionByCookie(r)
 		if sess == nil {
 			http.Error(w, "Unauth", http.StatusUnauthorized)
 			return
 		}
+		log.Printf("AuthMiddleware: sessionID=%s", sess.SessionID())
 		userID := sess.Get("userID")
 		if userID == nil {
 			http.Error(w, "Unauth", http.StatusUnauthorized)
@@ -262,6 +268,7 @@ func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 			http.Error(w, "Failed convert ID to string", http.StatusInternalServerError)
 			return
 		}
+		log.Printf("AuthMiddleware: userID=%s", userIDStr)
 		userUUID, err := uuid.Parse(userIDStr)
 		if err != nil {
 			http.Error(w, "Invalid ID", http.StatusInternalServerError)
