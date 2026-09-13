@@ -69,9 +69,11 @@ func (s *SessionStore) SessionID() string {
 
 func (s *SessionStore) saveToRedis() error {
 	data := struct {
-		UserID string `json:"user_id"`
+		UserID string         `json:"user_id"`
+		Data   map[string]any `json:"data"`
 	}{
 		UserID: s.userID,
+		Data:   s.data,
 	}
 	jsonData, err := json.Marshal(data)
 	if err != nil {
