@@ -18,9 +18,10 @@ type HTTPConfig struct {
 }
 
 type AppConfig struct {
-	RabbitMQ   `yaml:"rabbit_mq"`
-	HTTPConfig `yaml:"http"`
-	Postgres   `yaml:"postgres"`
+	RabbitMQ    `yaml:"rabbit_mq"`
+	HTTPConfig  `yaml:"http"`
+	Postgres    `yaml:"postgres"`
+	RedisConfig `yaml:"redis"`
 }
 
 func Load(path string) (*AppConfig, error) {
@@ -41,4 +42,12 @@ type Postgres struct {
 	User     string `yaml:"user"`
 	Password string `yaml:"password"`
 	DBName   string `yaml:"dbname"`
+}
+
+type RedisConfig struct {
+	Host     string `yaml:"host"`
+	Port     uint16 `yaml:"port"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
+	TTL      int    `yaml:"ttl"`
 }

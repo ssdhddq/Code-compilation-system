@@ -56,7 +56,8 @@ func main() {
 	sessionProvider := postgres.NewProvider(repo.Pool)
 	session.RegisterProvider("postgres", sessionProvider)
 
-	redisProvider := redis.NewProvider("redis:6379", "", 0, 24*time.Hour)
+	redisProvider := redis.NewProvider(fmt.Sprintf("%s:%d", cfg.RedisConfig.Host, cfg.RedisConfig.Port),
+		cfg.RedisConfig.Password, cfg.RedisConfig.DB, time.Duration(cfg.RedisConfig.TTL)*time.Hour)
 	session.RegisterProvider("redis", redisProvider)
 
 	manager, err := session.NewManager("redis", "sessionID", 86400)
