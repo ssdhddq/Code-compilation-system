@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"Code-compilation-system/repository"
 	"Code-compilation-system/session"
 	"context"
 	"encoding/json"
@@ -46,7 +47,7 @@ func (p *Provider) SessionRead(sid string) (session.Session, error) {
 	ctx := context.Background()
 	val, err := p.client.Get(ctx, sid).Result()
 	if err == redis.Nil {
-		return p.SessionInit(sid)
+		return nil, repository.NotFound
 	}
 	if err != nil {
 		return nil, err

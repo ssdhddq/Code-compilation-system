@@ -60,7 +60,7 @@ func main() {
 		cfg.RedisConfig.Password, cfg.RedisConfig.DB, time.Duration(cfg.RedisConfig.TTL)*time.Hour)
 	session.RegisterProvider("redis", redisProvider)
 
-	manager, err := session.NewManager("redis", "sessionID", 86400)
+	manager, err := session.NewManager("redis", "sessionID", int64(cfg.RedisConfig.TTL)*3600)
 	if err != nil {
 		panic("manager not started")
 	}
