@@ -282,9 +282,8 @@ func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 }
 
 func (o *Object) WrapHandlers(r chi.Router) {
-	r.Get("/metrics", promhttp.Handler().ServeHTTP)
-
 	r.Use(middleware.Logger)
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	r.Get("/swagger/*", swagger.Handler(
 		swagger.URL("/swagger/doc.json"),
 	))
