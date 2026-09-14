@@ -1,6 +1,7 @@
 package http
 
 import (
+	"Code-compilation-system/metrics"
 	"Code-compilation-system/repository"
 	"Code-compilation-system/repository/rabbit_mq"
 	"Code-compilation-system/session"
@@ -18,6 +19,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -204,6 +206,7 @@ func (o *Object) PostHandlerRegister(w http.ResponseWriter, r *http.Request) {
 	}
 	err = o.repo.RegisterUser(&newUser)
 	if err != nil {
+		log.Printf("RegisterUser error: %v", err)
 		errorHandler(w, err)
 		return
 	}
@@ -238,8 +241,11 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := sess.Set("userID", id.String()); err != nil {
+		log.Printf("Login failed: %v", err)
 		http.Error(w, "Failed to save sess userID", http.StatusInternalServerError)
 		return
+	} else {
+		log.Print("Success login")
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": sess.SessionID()})
@@ -247,11 +253,13 @@ func (o *Object) postHandlerAuth(w http.ResponseWriter, r *http.Request) {
 
 func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("AuthMiddleware: cookies=%v", r.Cookies())
 		sess := o.manager.GetSessionByCookie(r)
 		if sess == nil {
 			http.Error(w, "Unauth", http.StatusUnauthorized)
 			return
 		}
+		log.Printf("AuthMiddleware: sessionID=%s", sess.SessionID())
 		userID := sess.Get("userID")
 		if userID == nil {
 			http.Error(w, "Unauth", http.StatusUnauthorized)
@@ -262,6 +270,7 @@ func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 			http.Error(w, "Failed convert ID to string", http.StatusInternalServerError)
 			return
 		}
+		log.Printf("AuthMiddleware: userID=%s", userIDStr)
 		userUUID, err := uuid.Parse(userIDStr)
 		if err != nil {
 			http.Error(w, "Invalid ID", http.StatusInternalServerError)
@@ -274,6 +283,7 @@ func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 
 func (o *Object) WrapHandlers(r chi.Router) {
 	r.Use(middleware.Logger)
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 	r.Get("/swagger/*", swagger.Handler(
 		swagger.URL("/swagger/doc.json"),
 	))
@@ -376,4 +386,30 @@ func (o *Object) workHandler(id uuid.UUID, task *repository.Task) {
 func (o *Object) Healthy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+func MetricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+
+		next.ServeHTTP(ww, r)
+
+		routePattern := chi.RouteContext(r.Context()).RoutePattern()
+		if routePattern == "" {
+			routePattern = r.URL.Path
+		}
+
+		metrics.ObserveHTTP(r.Method, routePattern, http.StatusText(ww.status), time.Since(start))
+	})
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.status = code
+	rw.ResponseWriter.WriteHeader(code)
 }

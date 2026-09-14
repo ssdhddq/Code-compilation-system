@@ -3,6 +3,7 @@ package main
 import (
 	"Code-compilation-system/codeProcessor/code"
 	"Code-compilation-system/config"
+	"Code-compilation-system/metrics"
 	"Code-compilation-system/repository/rabbit_mq"
 	"bytes"
 	"encoding/json"
@@ -13,9 +14,20 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/streadway/amqp"
 )
+
+func startMetricsServer(addr string) {
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	log.Printf("Metrics server started on %s", addr)
+	if err := http.ListenAndServe(addr, mux); err != nil {
+		log.Printf("metrics server error: %v", err)
+	}
+}
 
 func main() {
 	log.Print("CodeProcessor start")
@@ -59,6 +71,8 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
+	go startMetricsServer(":9091")
+
 	go func() {
 		for d := range messages {
 			log.Printf("Message received: %s", d.Body)
@@ -68,6 +82,9 @@ func main() {
 				d.Nack(false, false)
 				continue
 			}
+
+			metrics.TasksInProgress.Inc()
+			start := time.Now()
 
 			log.Printf("Task in process id: %s, translator: %s, code: %s", tempMessage.TaskID, tempMessage.Translator, tempMessage.Code)
 
@@ -81,6 +98,11 @@ func main() {
 			} else {
 				status = "ready"
 			}
+
+			duration := time.Since(start)
+
+			metrics.ObserveTask(tempMessage.Translator, status, duration)
+			metrics.TasksInProgress.Dec()
 
 			if err := sendCommit(tempMessage.TaskID, result, status); err != nil {
 				log.Printf("Error send commit task id: %s, %s", tempMessage.TaskID, err.Error())
