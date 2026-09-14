@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"Code-compilation-system/metrics"
 	"Code-compilation-system/repository"
 	"context"
 
@@ -16,6 +17,7 @@ func (r *Object) RegisterUser(user *repository.User) error {
 	user.Password = string(hashed)
 	query := `INSERT INTO users (id, login, password_hash) VALUES ($1, $2, $3)`
 	_, err = r.Pool.Exec(context.Background(), query, user.Id, user.Login, user.Password)
+	metrics.ObserveDB("register_user", err)
 	return err
 }
 

@@ -1,6 +1,7 @@
 package http
 
 import (
+	"Code-compilation-system/metrics"
 	"Code-compilation-system/repository"
 	"Code-compilation-system/repository/rabbit_mq"
 	"Code-compilation-system/session"
@@ -18,6 +19,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	swagger "github.com/swaggo/http-swagger/v2"
 )
 
@@ -280,6 +282,8 @@ func (o *Object) AuthMiddleware(request http.Handler) http.Handler {
 }
 
 func (o *Object) WrapHandlers(r chi.Router) {
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
+
 	r.Use(middleware.Logger)
 	r.Get("/swagger/*", swagger.Handler(
 		swagger.URL("/swagger/doc.json"),
@@ -383,4 +387,30 @@ func (o *Object) workHandler(id uuid.UUID, task *repository.Task) {
 func (o *Object) Healthy(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+func MetricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+		ww := &responseWriter{ResponseWriter: w, status: http.StatusOK}
+
+		next.ServeHTTP(ww, r)
+
+		routePattern := chi.RouteContext(r.Context()).RoutePattern()
+		if routePattern == "" {
+			routePattern = r.URL.Path
+		}
+
+		metrics.ObserveHTTP(r.Method, routePattern, http.StatusText(ww.status), time.Since(start))
+	})
+}
+
+type responseWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (rw *responseWriter) WriteHeader(code int) {
+	rw.status = code
+	rw.ResponseWriter.WriteHeader(code)
 }
